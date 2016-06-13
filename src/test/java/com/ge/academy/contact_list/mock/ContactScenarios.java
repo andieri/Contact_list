@@ -16,12 +16,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -59,17 +56,19 @@ public class ContactScenarios {
         // List contacts
 
         mvc.perform(get("/groups/1/contacts"))
-//                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)))
-                .andExpect(jsonPath("$[*].id", Matchers.not(contactid)));
+                .andExpect(jsonPath("$", hasSize(0)));
 
 
-        // Create contact in group
+        // Create two contacts in group
+        mvc.perform(post("/groups/1/contacts").header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":\"notmyid\",\"firstName\":\"myname\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+
         MvcResult result = mvc.perform(post("/groups/1/contacts").header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}"))
                 .andExpect(status().isCreated())
-//                .andDo(print())
                 .andReturn();
 
         String headerValue = result.getResponse().getHeader("Location");
@@ -78,30 +77,27 @@ public class ContactScenarios {
 
         result = mvc.perform(get(headerValue))
                 .andExpect(status().isOk())
- //               .andDo(print())
                 .andExpect(jsonPath("$.id", Matchers.is(contactid)))
                 .andReturn();
-/*
-        // Is contact in group?
-        mvc.perform(get("/groups/" + group + "/contats"))
-                .andExpect(status().isOk())
-                .andDo(print())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[*].id", Matchers.is("myid")));
-        ;
 
-        // Details
-        mvc.perform(get("/groups/" + group + "/contacts/" + contactid)).andExpect(status().isOk());
+        // Is contact in group?
+        mvc.perform(get("/groups/" + group + "/contacts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(1)));
 
         // Delete the contact
         mvc.perform(delete("/groups/" + group + "/contacts/" + contactid)).andExpect(status().isOk());
 
-        // Is contact in group?(it shouldn't be)
-        mvc.perform(get("/groups/" + group + "/")).andExpect(status().isOk());
-
         // Details(it should fail)
-        mvc.perform(get("/groups/" + group + "/contacts/" + contactid)).andExpect(status().isNotFound());
-  */
+        mvc.perform(get(headerValue))
+                .andExpect(status().isNotFound());
+
+        // Group shouldn't contain it
+        mvc.perform(get("/groups/" + group + "/contacts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(0)));
+
     }
 
 

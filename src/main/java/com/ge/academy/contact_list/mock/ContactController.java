@@ -23,8 +23,10 @@ import java.util.List;
 public class ContactController {
     List<Contact> l = new ArrayList<>();
     Contact c = null;
+
     @RequestMapping(method = RequestMethod.GET, produces = "application/json")
     public ResponseEntity<Collection<Contact>> getContacts() {
+
         return ResponseEntity.ok(l);
     }
 
@@ -33,7 +35,7 @@ public class ContactController {
     public ResponseEntity<Void> postContact(@RequestBody Contact contact) {
         final URI location = ServletUriComponentsBuilder.fromCurrentServletMapping().path("/groups/{gid}/contacts/{id}").build().expand(1, 1).toUri();
         l.add(contact);
-        c= contact;
+        c = contact;
         return ResponseEntity.created(location).build();
 
     }
@@ -41,7 +43,7 @@ public class ContactController {
 
     @RequestMapping(value = "/{uid}", method = RequestMethod.GET, produces = "application/json")
     public ResponseEntity<Contact> getContact() {
-        if (c !=null)
+        if (c != null)
             return ResponseEntity.ok(c);
         else
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
@@ -57,7 +59,7 @@ public class ContactController {
     @RequestMapping(value = "/{uid}", method = RequestMethod.DELETE, produces = "application/json")
     public ResponseEntity<Collection<Contact>> removeContact() {
         l.remove(c);
-        c=null;
+        c = null;
         return ResponseEntity.ok(new ArrayList());
 
     }
