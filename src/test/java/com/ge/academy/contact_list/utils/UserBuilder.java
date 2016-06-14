@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ge.academy.contact_list.TestingApplication;
 import com.ge.academy.contact_list.mock.Token;
+import com.jayway.jsonpath.JsonPath;
+import net.minidev.json.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.http.MediaType;
@@ -34,6 +36,9 @@ public class UserBuilder {
 
     private Token adminToken = null;
     private Token userToken = null;
+    private String username = null;
+    private String password = null;
+
 
     public UserBuilder(WebApplicationContext ctx) {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
@@ -57,40 +62,55 @@ public class UserBuilder {
 
     public UserBuilder getAdminUser() throws Exception {
         Token adminToken = null;
-        String adminJson = this.userLoginRequestSendingHelper("root", "password").getContentAsString();
+        String adminJson = this.userLoginRequestSendingHelper("root", "Almafa123").getContentAsString();
         this.adminToken = new ObjectMapper().readValue(adminJson, Token.class);
         return this;
     }
 
     public UserBuilder getUser() throws Exception {
         this.getAdminUser();
-        MockHttpServletResponse response = null;
+        MockHttpServletResponse userResponse = null;
         int randomID = Integer.MIN_VALUE;
-        do {
-            randomID = (int) Math.floor(Math.random() * 1000.0);
-            response = this.createUserRequestSendingHelper(adminToken, "user" + randomID, "passwd" + randomID);
-        } while (response.getStatus() == 201);
 
-        MockHttpServletResponse userResponse = this.userLoginRequestSendingHelper("user" + randomID, "passwd" + randomID);
-        this.userToken = new ObjectMapper().readValue(response.getContentAsString(), Token.class);
+
+
+        if (this.username == null & this.password == null) {
+            do {
+                randomID = (int) Math.floor(Math.random() * 1000.0);
+                this.username = "user"+randomID;
+                this.password = "passwd"+randomID;
+            } while (this.createUserRequestSendingHelper(adminToken, username, password).getStatus() == 201);
+        } else {
+            this.createUserRequestSendingHelper(adminToken, username, password);
+        }
+        userResponse = this.userLoginRequestSendingHelper("user" + username, password);
+        this.userToken = new ObjectMapper().readValue(userResponse.getContentAsString(), Token.class);
         return this;
     }
 
-
-    public Token getAdminToken(){
-        return this.adminToken;
+    public UserBuilder setUsername(String username) {
+        this.username = username;
+        return this;
     }
 
-    public Token getUserToken(){
-        return this.userToken;
+    public UserBuilder setPassword(String password) {
+        this.password = password;
+        return this;
     }
 
-    public String getAdminAuthenticationString(){
-        return "Bearer "+adminToken.getTokenID();
+    public Token getAdminToken() {
+        return adminToken;
+    }
+
+    public Token getUserToken() {
+        return userToken;
     }
 
     public String getUserAuthenticationString() {
-        return "Bearer "+userToken.getTokenID();
+        return "Bearer " + userToken.getTokenID();
     }
 
+    public String getAdminUserAuthenticationString() {
+        return "Bearer " + adminToken.getTokenID();
+    }
 }
