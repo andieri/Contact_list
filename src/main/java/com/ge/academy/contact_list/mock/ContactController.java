@@ -38,7 +38,8 @@ public class ContactController {
 
     @RequestMapping(method = RequestMethod.POST, consumes = "application/json")
     public ResponseEntity<Void> postContact(@RequestBody Contact contact) {
-        final URI location = ServletUriComponentsBuilder.fromCurrentServletMapping().path("/groups/{gid}/contacts/{id}").build().expand(1, 1).toUri();
+        final URI location = ServletUriComponentsBuilder.fromCurrentServletMapping()
+                .path("/groups/{gid}/contacts/{id}").build().expand(1, 1).toUri();
         l.add(contact);
         c = contact;
         return ResponseEntity.created(location).build();
