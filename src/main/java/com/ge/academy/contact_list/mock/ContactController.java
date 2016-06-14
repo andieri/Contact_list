@@ -24,6 +24,11 @@ public class ContactController {
     List<Contact> l = new ArrayList<>();
     Contact c = null;
 
+    public void reset(){
+        l=new ArrayList<>();
+        Contact c = null;
+    }
+
     @RequestMapping(method = RequestMethod.GET, produces = "application/json")
     public ResponseEntity<Collection<Contact>> getContacts() {
 
@@ -51,7 +56,8 @@ public class ContactController {
     }
 
     @RequestMapping(value = "/{uid}", method = RequestMethod.PUT, produces = "application/json")
-    public ResponseEntity<Collection<Contact>> setContact() {
+    public ResponseEntity<Collection<Contact>> setContact(@RequestBody Contact contact) {
+        c.firstName= contact.firstName;
         return ResponseEntity.ok(new ArrayList());
 
     }
