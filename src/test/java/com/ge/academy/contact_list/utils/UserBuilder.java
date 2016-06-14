@@ -29,36 +29,39 @@ public class UserBuilder {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
     }
 
-    public String getUser() throws Exception {
-        String adminJson = mockMvc.perform(post("/login")
+    private MockHttpServletResponse createUserRequestSendingHelper(Token admin, String newUsername, String password) throws Exception {
+        return mockMvc.perform(post("/users")
+                .header("Authorization", "Baerer " + admin.getTokenID())
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("username", "root")
-                .param("password", "Almafa123")).andReturn().getResponse().getContentAsString();
+                .param("username", newUsername)
+                .param("password", password))
+                .andReturn().getResponse();
+    }
 
-        ObjectMapper jackson = new ObjectMapper();
-        String adminToken = jackson.readValue(adminJson, Token.class).getTokenID();
+    private MockHttpServletResponse userLoginRequestSendingHelper(String username, String password) throws Exception {
+        return mockMvc.perform(post("/login")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .param("username", username)
+                .param("password", password)).andReturn().getResponse();
+    }
 
+    public Token getAdminUser() {
+        return null;
+    }
 
+    public Token getUser() throws Exception {
+        String adminJson = this.userLoginRequestSendingHelper("root", "password").getContentAsString();
+        Token adminToken = new ObjectMapper().readValue(adminJson, Token.class);
         MockHttpServletResponse response = null;
         int randomID = Integer.MIN_VALUE;
         do {
             randomID = (int) Math.floor(Math.random() * 1000.0);
-            response = mockMvc.perform(post("/users")
-                    .header("Authorization", "Baerer " + adminToken)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .param("username", "user" + randomID)
-                    .param("password", "passwd" + randomID))
-                    .andReturn().getResponse();
+            response = this.createUserRequestSendingHelper(adminToken, "user" + randomID, "passwd" + randomID);
         } while (response.getStatus() == 201);
 
-        response = mockMvc.perform(post("/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("username", "user"+randomID)
-                .param("password", "passwd"+randomID))
-                .andReturn().getResponse();
-
+        MockHttpServletResponse userResponse = this.userLoginRequestSendingHelper("user" + randomID, "passwd" + randomID);
         String userJson = response.getContentAsString();
-        return new ObjectMapper().readValue(userJson, Token.class).getTokenID();
+        return new ObjectMapper().readValue(userJson, Token.class);
 
     }
 
