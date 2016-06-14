@@ -1,9 +1,12 @@
 package com.ge.academy.contact_list.adminuser;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ge.academy.contact_list.TestingApplication;
 import com.ge.academy.contact_list.mock.Token;
 import com.ge.academy.contact_list.utils.UserBuilder;
+import com.jayway.jsonpath.JsonPath;
+import net.minidev.json.JSONObject;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.GsonBuilderUtils;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -44,7 +48,7 @@ public class CreateUserByAdmin {
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", username)
-                .param("password", password));
+                .param("password", password)).andDo(print());
     }
 
     private ResultActions createUser(String username, String password, String adminToken) throws Exception {
@@ -120,7 +124,7 @@ public class CreateUserByAdmin {
         //given
         String authString = new UserBuilder(ctx).setUsername("user1").setPassword("password").getUser().getUserAuthenticationString();
         //when
-        ResultActions passwordUpdateRequest =  mockMvc.perform(put("/users")
+        ResultActions passwordUpdateRequest = mockMvc.perform(put("/users")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", "user1")
                 .param("password", "password")
@@ -128,25 +132,57 @@ public class CreateUserByAdmin {
                 .header("Authorization", authString)).andDo(print());
 
         //then
-                passwordUpdateRequest.andExpect(status().isOk())
+        passwordUpdateRequest.andExpect(status().isOk())
                 .andReturn();
-        mockMvc.perform(get("/groups")).andExpect(status().isForbidden());
+        //mockMvc.perform(get("/groups")).andExpect(status().isForbidden());
     }
 
-    public void LogedInUserwheChangePasswordShouldReLoginTheNewPassword() throws Exception{
+
+    @Test
+    public void LogedInUserWheChangePasswordShouldReloginWithNewPassword() throws Exception {
         //given
-        String authString = new UserBuilder(ctx).getUser().getUserAuthenticationString();
+        String authString = new UserBuilder(ctx).setUsername("username").setPassword("pass").getUser().getUserAuthenticationString();
         //when
 
         ResultActions passwordUpdateRequest =
                 mockMvc.perform(put("/users")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED));
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", "username")
+                        .param("password", "pass")
+                        .param("newpassword", "pass2"))
+                        .andExpect(status().isOk());
+
+        //logout request
+
+        ResultActions relogin = this.loginUser("username", "pass2");
 
         //then
 
-
+        relogin.andExpect(status().isOk()).andReturn();
     }
 
+    @Test
+    public void LogedInUserWheChangePasswordShouldNotReloginWithOldPassword() throws Exception {
+        //given
+        String authString = new UserBuilder(ctx).setUsername("username").setPassword("pass").getUser().getUserAuthenticationString();
+        //when
+
+        ResultActions passwordUpdateRequest =
+                mockMvc.perform(put("/users")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", "username")
+                        .param("password", "pass")
+                        .param("newpassword", "pass2"))
+                        .andExpect(status().isOk());
+
+        //logout request
+
+        ResultActions relogin = this.loginUser("username", "pass1");
+
+        //then
+
+        relogin.andExpect(status().is4xxClientError()).andReturn();
+    }
 
 
 }
