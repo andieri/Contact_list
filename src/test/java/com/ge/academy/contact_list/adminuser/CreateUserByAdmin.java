@@ -120,17 +120,29 @@ public class CreateUserByAdmin {
         //given
         String authString = new UserBuilder(ctx).setUsername("user1").setPassword("password").getUser().getUserAuthenticationString();
         //when
-        //then
-
-        mockMvc.perform(put("/Users")
+        ResultActions passwordUpdateRequest =  mockMvc.perform(put("/users")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", "user1")
                 .param("password", "password")
                 .param("newpassword", "newpassword")
-                .header("Authorization", authString))
-                .andExpect(status().isOk())
+                .header("Authorization", authString)).andDo(print());
+
+        //then
+                passwordUpdateRequest.andExpect(status().isOk())
                 .andReturn();
         mockMvc.perform(get("/groups")).andExpect(status().isForbidden());
+    }
+
+    public void LogedInUserwheChangePasswordShouldReLoginTheNewPassword() throws Exception{
+        //given
+        String authString = new UserBuilder(ctx).getUser().getUserAuthenticationString();
+        //when
+
+        ResultActions passwordUpdateRequest =
+                mockMvc.perform(put("/users")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED));
+
+        //then
 
 
     }
