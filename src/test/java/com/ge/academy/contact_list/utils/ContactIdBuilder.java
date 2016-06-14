@@ -106,17 +106,15 @@ public class ContactIdBuilder {
 
         public String build() throws Exception {
             this.mvc = MockMvcBuilders.webAppContextSetup(instance.webApplicationContext).build();
-            MvcResult answer = mvc.perform(post("/groups/" + instance.groupId + "/contacts")
+            mvc.perform(post("/groups/" + instance.groupId + "/contacts")
                     .header("Authorization", instance.authHeader)
                     .contentType(MediaType.APPLICATION_JSON_UTF8)
                     .content("{\"id\":\""+instance.id+"\", \"firstName\":\""+instance.firstName+"\", " +
                             "\"lastName\":\""+instance.lastName+"\", \"homeEmail\":\""+instance.homeEmail+"\", " +
                             "\"workEmail\":\""+instance.workEmail+"\", \"nickName\":\""+instance.nickName+"\", " +
                             "\"jobTitle\":\""+instance.jobTitle+"\"}"))
-                    .andDo(print())
-                    .andReturn();
-            String[] locationHeaderSplit = answer.getResponse().getHeader("Location").split("/");
-            return locationHeaderSplit[locationHeaderSplit.length-1];
+                    .andDo(print());
+            return instance.id;
         }
     }
 }
