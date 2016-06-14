@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -21,8 +22,8 @@ public class GroupController {
     }
 
     @RequestMapping(method = RequestMethod.POST, produces = "application/json")
-    public ResponseEntity<Collection<ContactGroup>> createGroup() {
-        return ResponseEntity.ok(new ArrayList());
+    public ResponseEntity<Void> createGroup() {
+        return ResponseEntity.created(URI.create("/groups/{gid}")).build();
     }
 
     @RequestMapping(path = "/groupId", method = RequestMethod.PUT, produces = "application/json")

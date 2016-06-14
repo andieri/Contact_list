@@ -2,6 +2,7 @@ package com.ge.academy.contact_list.mock;
 
 import com.ge.academy.contact_list.TestingApplication;
 import com.ge.academy.contact_list.utils.GroupBuilder;
+import com.ge.academy.contact_list.utils.UserBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,13 +40,13 @@ public class GroupControllerTest {
     String authHeader = "Bearer authHeader";
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         mvc = MockMvcBuilders
                 .webAppContextSetup(context)
                 .build();
 
-        // get user A and login
-
+        UserBuilder userBuilder = new UserBuilder(context);
+        String authHeader = userBuilder.getUser();
     }
 
     public String createGroupWithAuthHeaderReturnsGroupId(String authHeader, String name, String displayName) throws Exception {
@@ -72,10 +73,11 @@ public class GroupControllerTest {
     @Test
     public void getAllGroupsShouldReturnEmptyJsonWhenNoGroupsArePresent() throws Exception {
         // Given
-        // userA and their auth headers
+        UserBuilder userBuilder = new UserBuilder(context);
+        String authHeader = userBuilder.getUser();
 
         // When
-        mvc.perform(get("/groups").header("Authorization", "testUser"))
+        mvc.perform(get("/groups").header("Authorization", authHeader))
                 .andDo(print())
 
         // Then

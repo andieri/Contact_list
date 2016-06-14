@@ -58,6 +58,7 @@ public class UserBuilder {
                 .andReturn().getResponse();
 
         String userJson = response.getContentAsString();
+
         return new ObjectMapper().readValue(userJson, Token.class).getTokenID();
 
     }
