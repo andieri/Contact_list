@@ -32,8 +32,14 @@ public class ContactIdBuilder {
     }
 
     private String authHeader;
-    private String name;
-    private String displayName;
+    private String groupId;
+    private String id;
+    private String firstName;
+    private String lastName;
+    private String homeEmail;
+    private String workEmail;
+    private String nickName;
+    private String jobTitle;
     private WebApplicationContext webApplicationContext;
 
     public static Builder builder() {
@@ -53,13 +59,43 @@ public class ContactIdBuilder {
             return this;
         }
 
-        public Builder name(String name){
-            instance.name = name;
+        public Builder groupId(String groupId){
+            instance.groupId = groupId;
             return this;
         }
 
-        public Builder displayName(String displayName){
-            instance.displayName = displayName;
+        public Builder id(String id){
+            instance.id = id;
+            return this;
+        }
+
+        public Builder firstName(String firstName){
+            instance.firstName = firstName;
+            return this;
+        }
+
+        public Builder lastName(String lastName){
+            instance.lastName = lastName;
+            return this;
+        }
+
+        public Builder homeEmail(String homeEmail){
+            instance.homeEmail = homeEmail;
+            return this;
+        }
+
+        public Builder workEmail(String workEmail){
+            instance.workEmail = workEmail;
+            return this;
+        }
+
+        public Builder nickName(String nickName){
+            instance.nickName = nickName;
+            return this;
+        }
+
+        public Builder jobTitle(String jobTitle){
+            instance.jobTitle = jobTitle;
             return this;
         }
 
@@ -70,12 +106,17 @@ public class ContactIdBuilder {
 
         public String build() throws Exception {
             this.mvc = MockMvcBuilders.webAppContextSetup(instance.webApplicationContext).build();
-            MvcResult answer = mvc.perform(post("/groups").header("Authorization", instance.authHeader)
+            MvcResult answer = mvc.perform(post("/groups/" + instance.groupId + "/contacts")
+                    .header("Authorization", instance.authHeader)
                     .contentType(MediaType.APPLICATION_JSON_UTF8)
-                    .content("{\"name\": \"" + instance.name + "\", \"displayName\": \"" + instance.displayName + "\"}"))
+                    .content("{\"id\":\""+instance.id+"\", \"firstName\":\""+instance.firstName+"\", " +
+                            "\"lastName\":\""+instance.lastName+"\", \"homeEmail\":\""+instance.homeEmail+"\", " +
+                            "\"workEmail\":\""+instance.workEmail+"\", \"nickName\":\""+instance.nickName+"\", " +
+                            "\"jobTitle\":\""+instance.jobTitle+"\"}"))
                     .andDo(print())
                     .andReturn();
-            return answer.getResponse().getHeader("Location");
+            String[] locationHeaderSplit = answer.getResponse().getHeader("Location").split("/");
+            return locationHeaderSplit[locationHeaderSplit.length-1];
         }
     }
 }
