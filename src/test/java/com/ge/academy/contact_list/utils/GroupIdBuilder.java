@@ -12,13 +12,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 /**
  * Created by 212566301 on 6/13/2016.
  */
-public class GroupBuilder {
+public class GroupIdBuilder {
 
     /*
             fluent api builder pattern for groups
 
             Example usage (all parameters are necessary):
-            String groupId = GroupBuilder.builder()
+            String groupId = GroupIdBuilder.builder()
                             .authHeader(authHeader)
                             .name("name")
                             .displayName("displayName")
@@ -28,7 +28,7 @@ public class GroupBuilder {
             TBD: unit tests
      */
 
-    public GroupBuilder() {
+    public GroupIdBuilder() {
     }
 
     private String authHeader;
@@ -37,12 +37,12 @@ public class GroupBuilder {
     private WebApplicationContext webApplicationContext;
 
     public static Builder builder() {
-        return new GroupBuilder.Builder();
+        return new GroupIdBuilder.Builder();
     }
 
     public static class Builder {
 
-        private GroupBuilder instance = new GroupBuilder();
+        private GroupIdBuilder instance = new GroupIdBuilder();
         private MockMvc mvc;
 
         public Builder() {
@@ -70,12 +70,11 @@ public class GroupBuilder {
 
         public String build() throws Exception {
             this.mvc = MockMvcBuilders.webAppContextSetup(instance.webApplicationContext).build();
-            MvcResult answer = mvc.perform(post("/groups").header("Authorization", instance.authHeader)
+            mvc.perform(post("/groups").header("Authorization", instance.authHeader)
                     .contentType(MediaType.APPLICATION_JSON_UTF8)
-                    .content("{'name': '" + instance.name + "', 'displayName': '" + instance.displayName + "'}"))
-                    .andDo(print())
-                    .andReturn();
-            return answer.getResponse().getHeader("Location");
+                    .content("{\"name\": \"" + instance.name + "\", \"displayName\": \"" + instance.displayName + "\"}"))
+                    .andDo(print());
+            return instance.name;
         }
     }
 }

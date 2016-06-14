@@ -1,7 +1,9 @@
 package com.ge.academy.contact_list.mock;
 
 import com.ge.academy.contact_list.TestingApplication;
-import com.ge.academy.contact_list.utils.User;
+import com.ge.academy.contact_list.utils.GroupIdBuilder;
+import com.ge.academy.contact_list.utils.UserBuilder;
+import com.jayway.jsonpath.JsonPath;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,9 +18,11 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -30,21 +34,30 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration//Scenarios for controller: 6, 7, 8
 
 public class ContactScenarios {
+    String UserA;
+    String group;
     @Autowired
     private WebApplicationContext context;
-
     private MockMvc mvc;
-
     @Autowired
     private ContactController contacts;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         contacts.reset();
         mvc = MockMvcBuilders
                 .webAppContextSetup(context)
                 .build();
 
+        //UserA = new UserBuilder(context).getUser().getUserAuthenticationString();
+        UserA = "sajt";
+
+        group = GroupIdBuilder.builder()
+                .webApplicationContext(context)
+                .authHeader(UserA)
+                .name("group1")
+                .displayName("GroupName1")
+                .build();
     }
 
 
@@ -52,57 +65,43 @@ public class ContactScenarios {
 
     @Test
     public void createAndDeleteContact() throws Exception {
-        User UserA = new User();
-        String group = "group";
 
         String contactid = "myid2";
 
-        // Create two contacts in group
-        mvc.perform(post("/groups/1/contacts")
-                .header("Authorization", UserA.getAuthString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}"))
-                .andExpect(status().isCreated())
-                .andReturn();
+        addContact(UserA, group, "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
 
-        // Create two contacts in group
-        MvcResult result = mvc.perform(post("/groups/1/contacts")
-                .header("Authorization", UserA.getAuthString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}"))
-                .andExpect(status().isCreated())
-                .andReturn();
-
-        String headerValue = result.getResponse().getHeader("Location");
+        String headerValue =
+                addContact(UserA, group, "{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}");
 
         // Details
-
-        mvc.perform(get(headerValue)
-                .header("Authorization", UserA.getAuthString()))
+        MvcResult result = mvc.perform(get(headerValue)
+                .header("Authorization", UserA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", Matchers.is(contactid)))
                 .andReturn();
 
+        System.out.println(JsonPath.read(result.getResponse().getContentAsString(), "$").toString());
+
         // Is contact in group?
         mvc.perform(get("/groups/" + group + "/contacts")
-                .header("Authorization", UserA.getAuthString()))
+                .header("Authorization", UserA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(1)));
 
         // Delete the contact
         mvc.perform(delete("/groups/" + group + "/contacts/" + contactid)
-                .header("Authorization", UserA.getAuthString()))
+                .header("Authorization", UserA))
                 .andExpect(status().isOk());
 
         // Details(it should fail)
         mvc.perform(get(headerValue)
-                .header("Authorization", UserA.getAuthString()))
+                .header("Authorization", UserA))
                 .andExpect(status().isNotFound());
 
         // Group shouldn't contain it
         mvc.perform(get("/groups/" + group + "/contacts")
-                .header("Authorization", UserA.getAuthString()))
+                .header("Authorization", UserA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(0)));
 
@@ -110,34 +109,22 @@ public class ContactScenarios {
 
     @Test
     public void createAndModify() throws Exception {
-        User UserA = new User();
-        String group = "group";
+
 
         String contactid = "myid2";
 
-        // Create two contacts in group
-        mvc.perform(post("/groups/1/contacts")
-                .header("Authorization", UserA.getAuthString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}"))
-                .andExpect(status().isCreated())
-                .andReturn();
+        // Add two contacts
 
-        // Create two contacts in group
-        MvcResult result = mvc.perform(post("/groups/1/contacts")
-                .header("Authorization", UserA.getAuthString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}"))
-                .andExpect(status().isCreated())
-                .andReturn();
+        addContact(UserA, group, "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
 
-        String headerValue = result.getResponse().getHeader("Location");
+        String headerValue =
+                addContact(UserA, group, "{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}");
+
 
         // Details
 
         mvc.perform(get(headerValue)
-                .header("Authorization", UserA.getAuthString()))
-                .andDo(print())
+                .header("Authorization", UserA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", Matchers.is(contactid)))
                 .andExpect(jsonPath("$.firstName", Matchers.is("myname")))
@@ -145,14 +132,14 @@ public class ContactScenarios {
 
         // Is contact in group?
         mvc.perform(get("/groups/" + group + "/contacts")
-                .header("Authorization", UserA.getAuthString()))
+                .header("Authorization", UserA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(1)));
 
         // Modify the contact
         mvc.perform(put("/groups/" + group + "/contacts/" + contactid)
-                .header("Authorization", UserA.getAuthString())
+                .header("Authorization", UserA)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":\"" + contactid + "\",\"firstName\":\"mynewname\"}"))
                 .andExpect(status().isOk());
@@ -160,12 +147,97 @@ public class ContactScenarios {
         // Details
 
         mvc.perform(get(headerValue)
-                .header("Authorization", UserA.getAuthString()))
+                .header("Authorization", UserA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.firstName", Matchers.is("mynewname")))
                 .andReturn();
 
     }
 
+    @Test
+    public void search() throws Exception {
 
+
+        addContact(UserA, group, "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
+
+        addContact(UserA, group, "{\"id\":\"myid\",\"firstName\":\"myname\"}");
+
+        addContact(UserA, group, "{\"id\":\"abcabc\",\"firstName\":\"sanyi\"}");
+
+
+        // Is contact in group?
+        // No one has any idea about the interface so this is just a plan:
+        // can you find two "myname"?
+        mvc.perform(post("/find")
+                .header("Authorization", UserA)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"firstName\":\"myname\"}"))
+                .andExpect(status().isOk());
+
+        // can you find "notmyname"?
+        mvc.perform(post("/find")
+                .header("Authorization", UserA)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"firstName\":\"notmyname\"}"))
+                .andExpect(status().isOk());
+
+        // can you find "bc" by ID?
+        mvc.perform(post("/find")
+                .header("Authorization", UserA)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":\"bc\"}"))
+                .andExpect(status().isOk());
+
+    }
+
+    @Test
+    public void testMultipleGroupsAndUsers() throws Exception {
+        List<String> users = new ArrayList<String>();
+        String groupid1 = "group1";
+        String groupid2 = "group2";
+        // Given
+        // N users with two groups each. Every first group will have one contact, and every second group will have i * 2 contact
+        for (int i = 0; i < 10; i++) {
+            String user = "erzsi";//new UserBuilder(context).getUser().getUserAuthenticationString();
+            users.add(user);
+
+            addContact(user, groupid1, "{\"id\":\"myid" + i + "\",\"firstName\":\"name" + i + "\"}");
+            for (int d = 0; d < i; d++) {
+                addContact(user, groupid2, "{\"id\":\"myid" + i + d + "\",\"firstName\":\"name" + i + "\"}");
+            }
+
+        }
+        int d = 0;
+        for (String user : users) {
+            addContact(user, groupid2, "{\"id\":\"new" + d + "\",\"firstName\":\"name" + d + "\"}");
+            d++;
+        }
+
+        d = 0;
+        for (String user : users) {
+            mvc.perform(get("/groups/" + groupid1 + "/contacts")
+                    .header("Authorization", user))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)));
+
+            mvc.perform(get("/groups/" + groupid2 + "/contacts")
+                    .header("Authorization", user))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(d * 2)));
+            d++;
+        }
+    }
+
+
+    private String addContact(String user, String group, String ContactJson) throws Exception {
+        MvcResult result = mvc.perform(post("/groups/" + group + "/contacts")
+                .header("Authorization", user)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(ContactJson))//"{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}"
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return result.getResponse().getHeader("Location");
+
+    }
 }
