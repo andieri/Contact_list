@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 public class Token {
 
     private String tokenID;
-    private String user;
+    private User user;
     private LocalDateTime expiresOn;
 
     public String getTokenID() {
@@ -19,11 +19,11 @@ public class Token {
         this.tokenID = tokenID;
     }
 
-    public String getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(String user) {
+    public void setUser(User user) {
         this.user = user;
     }
 
@@ -34,4 +34,6 @@ public class Token {
     public void setExpiresOn(LocalDateTime expiresOn) {
         this.expiresOn = expiresOn;
     }
+
+
 }
