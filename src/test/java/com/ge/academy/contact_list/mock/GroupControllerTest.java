@@ -1,8 +1,8 @@
 package com.ge.academy.contact_list.mock;
 
-import com.ge.academy.contact_list.TestingApplication;
+import com.ge.academy.contact_list.ContactListApplication;
+import com.ge.academy.contact_list.utils.ContactGroup;
 import com.ge.academy.contact_list.utils.ContactIdBuilder;
-import com.ge.academy.contact_list.utils.GroupIdBuilder;
 import com.ge.academy.contact_list.utils.GroupIdModifier;
 import com.ge.academy.contact_list.utils.UserBuilder;
 import org.apache.tomcat.util.file.Matcher;
@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Created by 212565332 on 6/13/2016.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = TestingApplication.class)
+@SpringApplicationConfiguration(classes = ContactListApplication.class)
 @WebAppConfiguration
 public class GroupControllerTest {
 
@@ -51,9 +51,7 @@ public class GroupControllerTest {
     @Test
     public void getAllGroupsShouldReturnEmptyJsonWhenNoGroupsArePresent() throws Exception {
         // Given
-        UserBuilder userBuilder = new UserBuilder(context);
-        String authHeader = userBuilder.getUser().getUserAuthenticationString();
-        mvc.perform(delete("/groups").header("Authorization", authHeader));
+        String authHeader = new UserBuilder(context).getUser().getUserAuthenticationString();
 
         // When
         mvc.perform(get("/groups").header("Authorization", authHeader))
@@ -68,18 +66,18 @@ public class GroupControllerTest {
     @Test
     public void createGroupAndCheckIfCreated() throws Exception {
         // Given
-        UserBuilder userBuilder = new UserBuilder(context);
-        String authHeader = userBuilder.getUser().getUserAuthenticationString();
-        mvc.perform(delete("/groups").header("Authorization", authHeader));
+        String authHeader = new UserBuilder(context).getUser().getUserAuthenticationString();
 
 
         // When
-        String groupName = GroupIdBuilder.builder()
+        ContactGroup contactGroup = ContactGroup.creator()
                 .authHeader(authHeader)
-//                .name("name")
+                .name("name")
                 .displayName("displayName")
                 .webApplicationContext(context)
-                .build();
+                .create();
+
+        String groupName = contactGroup.getName();
 
         // Then
         mvc.perform(get("/groups").header("Authorization", authHeader))
@@ -102,16 +100,16 @@ public class GroupControllerTest {
     public void renameGroupShouldReturnRenamedGroup() throws Exception {
 
         // Given
-        UserBuilder userBuilder = new UserBuilder(context);
-        String authHeader = userBuilder.getUser().getUserAuthenticationString();
-        mvc.perform(delete("/groups").header("Authorization", authHeader));
+        String authHeader = new UserBuilder(context).getUser().getUserAuthenticationString();
 
-        String groupName = GroupIdBuilder.builder()
+        ContactGroup contactGroup = ContactGroup.creator()
                 .authHeader(authHeader)
-//                .name("name")
+                .name("name")
                 .displayName("displayName")
                 .webApplicationContext(context)
-                .build();
+                .create();
+
+        String groupName = contactGroup.getName();
 
         mvc.perform(get("/groups").header("Authorization", authHeader))
                 .andDo(print())
@@ -126,7 +124,6 @@ public class GroupControllerTest {
                 .displayName("displayName2")
                 .webApplicationContext(context)
                 .build();
-
 
         // Then
         mvc.perform(get("/groups").header("Authorization", authHeader))
@@ -149,17 +146,17 @@ public class GroupControllerTest {
     @Test
     public void createNewContactShouldAddContactToGroup() throws Exception {
         // Given
-        UserBuilder userBuilder = new UserBuilder(context);
-        String authHeader = userBuilder.getUser().getUserAuthenticationString();
-        mvc.perform(delete("/groups").header("Authorization", authHeader));
+        String authHeader = new UserBuilder(context).getUser().getUserAuthenticationString();
 
 
-        String groupName = GroupIdBuilder.builder()
+        ContactGroup contactGroup = ContactGroup.creator()
                 .authHeader(authHeader)
-//                .name("name")
+                .name("name")
                 .displayName("displayName")
                 .webApplicationContext(context)
-                .build();
+                .create();
+
+        String groupName = contactGroup.getName();
 
         // When
         String contactId = ContactIdBuilder.builder()
@@ -185,26 +182,26 @@ public class GroupControllerTest {
     public void differentUsersShouldNotAccessEachOthersGroups() throws Exception {
 
         // Given
-        UserBuilder userBuilder = new UserBuilder(context);
-        String authHeader1 = userBuilder.getUser().getUserAuthenticationString();
-        String authHeader2 = userBuilder.getUser().getUserAuthenticationString();
-        mvc.perform(delete("/groups").header("Authorization", authHeader1));
-        mvc.perform(delete("/groups").header("Authorization", authHeader2));
+        String authHeader1 = new UserBuilder(context).getUser().getUserAuthenticationString();
+        String authHeader2 = new UserBuilder(context).getUser().getUserAuthenticationString();
 
         // When
-        String groupName1 = GroupIdBuilder.builder()
+        ContactGroup contactGroup1 = ContactGroup.creator()
                 .authHeader(authHeader1)
-//                .name("name")
+                .name("name")
                 .displayName("displayName")
                 .webApplicationContext(context)
-                .build();
+                .create();
 
-        String groupName2 = GroupIdBuilder.builder()
+        ContactGroup contactGroup2 = ContactGroup.creator()
                 .authHeader(authHeader2)
-//                .name("name")
+                .name("name")
                 .displayName("displayName")
                 .webApplicationContext(context)
-                .build();
+                .create();
+
+        String groupName1 = contactGroup1.getName();
+        String groupName2 = contactGroup2.getName();
 
         // Then
         mvc.perform(get("/groups").header("Authorization", authHeader1))
