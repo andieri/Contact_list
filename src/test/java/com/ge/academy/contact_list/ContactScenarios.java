@@ -170,21 +170,21 @@ public class ContactScenarios {
         // Is contact in group?
         // No one has any idea about the interface so this is just a plan:
         // can you find two "myname"?
-        mvc.perform(post("/find")
+        mvc.perform(post("/groups/search")
                 .header("Authorization", UserA.getUserAuthenticationString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"firstName\":\"myname\"}"))
                 .andExpect(status().isOk());
 
         // can you find "notmyname"?
-        mvc.perform(post("/find")
+        mvc.perform(post("/groups/search")
                 .header("Authorization", UserA.getUserAuthenticationString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"firstName\":\"notmyname\"}"))
                 .andExpect(status().isOk());
 
         // can you find "bc" by ID?
-        mvc.perform(post("/find")
+        mvc.perform(post("/groups/search")
                 .header("Authorization", UserA.getUserAuthenticationString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":\"bc\"}"))
