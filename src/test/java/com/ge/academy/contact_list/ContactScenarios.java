@@ -1,6 +1,6 @@
 package com.ge.academy.contact_list;
 
-import com.ge.academy.contact_list.entity.User;
+import com.ge.academy.contact_list.utils.Contact;
 import com.ge.academy.contact_list.utils.ContactGroup;
 import com.ge.academy.contact_list.utils.UserBuilder;
 import com.jayway.jsonpath.JsonPath;
@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ContactScenarios {
     UserBuilder UserA;
     ContactGroup groupA;
-    
+
     @Autowired
     private WebApplicationContext context;
     private MockMvc mvc;
@@ -51,7 +51,7 @@ public class ContactScenarios {
 
         UserA = new UserBuilder(context).getUser();
 
-        ContactGroup contactGroup = ContactGroup.creator()
+        groupA = ContactGroup.creator()
                 .authHeader(UserA.getUserAuthenticationString())
                 .userName(UserA.getUsername())
                 .name("name")
@@ -69,11 +69,12 @@ public class ContactScenarios {
     public void createAndDeleteContact() throws Exception {
 
         String contactid = "myid2";
-
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
+        System.out.println(UserA.getUserAuthenticationString());
+        System.out.println(groupA.getName());
+        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "firstName", "notmyname");
 
         String headerValue =
-                addContact(UserA.getUserAuthenticationString(), groupA.getName(), "{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}");
+                addContact(UserA.getUserAuthenticationString(), groupA.getName(), contactid, "myname");
 
         // Details
         MvcResult result = mvc.perform(get(headerValue)
@@ -117,10 +118,10 @@ public class ContactScenarios {
 
         // Add two contacts
 
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
+        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "notmyid", "notmyname");
 
         String headerValue =
-                addContact(UserA.getUserAuthenticationString(), groupA.getName(), "{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}");
+                addContact(UserA.getUserAuthenticationString(), groupA.getName(), "myid", "myname");
 
 
         // Details
@@ -160,11 +161,11 @@ public class ContactScenarios {
     public void search() throws Exception {
 
 
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
+        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "notmyid", "notmyname");
 
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "{\"id\":\"myid\",\"firstName\":\"myname\"}");
+        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "myid", "myname");
 
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "{\"id\":\"abcabc\",\"firstName\":\"sanyi\"}");
+        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "abcabc", "sanyi");
 
 
         // Is contact in group?
@@ -203,15 +204,15 @@ public class ContactScenarios {
             String user = "erzsi";//new UserBuilder(context).getUser().getUserAuthenticationString();
             users.add(user);
 
-            addContact(user, groupid1, "{\"id\":\"myid" + i + "\",\"firstName\":\"name" + i + "\"}");
+            addContact(user, groupid1, "myid", "myname");
             for (int d = 0; d < i; d++) {
-                addContact(user, groupid2, "{\"id\":\"myid" + i + d + "\",\"firstName\":\"name" + i + "\"}");
+                addContact(user, groupid2, "myid" + i + d, "name" + i);
             }
 
         }
         int d = 0;
         for (String user : users) {
-            addContact(user, groupid2, "{\"id\":\"new" + d + "\",\"firstName\":\"name" + d + "\"}");
+            addContact(user, groupid2, "new" + d,"name" + d);
             d++;
         }
 
@@ -231,15 +232,22 @@ public class ContactScenarios {
     }
 
 
-    private String addContact(String user, String group, String ContactJson) throws Exception {
-        MvcResult result = mvc.perform(post("/groups/" + group + "/contacts")
-                .header("Authorization", user)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(ContactJson))//"{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}"
-                .andExpect(status().isCreated())
-                .andReturn();
+    private String addContact(String user, String group, String id, String firstName) throws Exception {
 
-        return result.getResponse().getHeader("Location");
+
+        Contact contact = Contact.builder()
+                .authHeader(user)
+                .groupId(group)
+                .id(id)
+                .firstName(firstName)
+                .lastName("lastName")
+                .homeEmail("home@email.email")
+                .workEmail("work@email.email")
+                .nickName("nickName")
+                .jobTitle("jobTitle")
+                .webApplicationContext(context)
+                .create();
+        return "/groups/" + group + "/contacts/" + contact.getId();
 
     }
 }
