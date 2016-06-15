@@ -1,6 +1,7 @@
 package com.ge.academy.contact_list.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
@@ -10,6 +11,7 @@ import org.springframework.web.context.WebApplicationContext;
 import com.ge.academy.contact_list.entity.Token;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 /**
  * Created by 212566304 on 6/13/2016.
@@ -21,8 +23,8 @@ public class UserBuilder {
 
     private static long counter = 1L;
 
-    private Token adminToken = null;
-    private Token userToken = null;
+    private String adminToken = null;
+    private String userToken = null;
     private String username = null;
     private String password = null;
 
@@ -31,25 +33,28 @@ public class UserBuilder {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
     }
 
-    private MockHttpServletResponse createUser(Token admin, String newUsername, String password) throws Exception {
-        return mockMvc.perform(post("/users")
-                .header("Authorization", "Bearer " + admin.getTokenId())
+    private MockHttpServletResponse createUser(String admin, String newUsername, String password) throws Exception {
+        return mockMvc.perform(post("/users/create")
+                .header("Authorization", "Bearer " + admin)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", newUsername)
-                .param("password", password))
+                .param("password", password)).andDo(print())
                 .andReturn().getResponse();
     }
 
     private MockHttpServletResponse userLogin(String username, String password) throws Exception {
+
+        String json = "{ \"username\" : "+'"'+ username +"\", \"password\" : \""+ password +"\" }";
+        System.out.println(json);
         return mockMvc.perform(post("/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("username", username)
-                .param("password", password)).andReturn().getResponse();
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andDo(print()).andReturn().getResponse();
     }
 
     public UserBuilder getAdminUser() throws Exception {
-        String adminJson = this.userLogin("root", "Almafa123").getContentAsString();
-        this.adminToken = new ObjectMapper().readValue(adminJson, Token.class);
+        String adminJson = this.userLogin("Admin", "Alma1234").getContentAsString();
+        this.adminToken = JsonPath.read(adminJson, "$.tokenId");
         return this;
     }
 
@@ -70,8 +75,8 @@ public class UserBuilder {
         } else {
             this.createUser(adminToken, username, password);
         }
-        userResponse = this.userLogin("user" + username, password);
-        this.userToken = new ObjectMapper().readValue(userResponse.getContentAsString(), Token.class);
+        userResponse = this.userLogin(username, password);
+        this.userToken =  JsonPath.read(userResponse, "$.tokenId");;
         return this;
     }
 
@@ -85,19 +90,19 @@ public class UserBuilder {
         return this;
     }
 
-    public Token getAdminToken() {
+    public String getAdminToken() {
         return adminToken;
     }
 
-    public Token getUserToken() {
+    public String getUserToken() {
         return userToken;
     }
 
     public String getUserAuthenticationString() {
-        return "Bearer " + userToken.getTokenId();
+        return "Bearer " + userToken;
     }
 
     public String getAdminUserAuthenticationString() {
-        return "Bearer " + adminToken.getTokenId();
+        return "Bearer " + adminToken;
     }
 }
