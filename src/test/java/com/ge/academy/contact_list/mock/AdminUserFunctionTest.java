@@ -51,8 +51,9 @@ public class AdminUserFunctionTest {
     private String createAUsernamePasswordJson(String username, String password) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
-        node.put("username", username);
+        node.put("userName", username);
         node.put("password", password);
+        node.put("role", "USER");
         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
     }
 
@@ -60,8 +61,8 @@ public class AdminUserFunctionTest {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
         node.put("username", username);
-        node.put("password", password);
-        node.put("newpassword", newPassword);
+        node.put("oldPassword", password);
+        node.put("newPassword", newPassword);
         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
     }
 
@@ -101,7 +102,7 @@ public class AdminUserFunctionTest {
         return mockMvc.perform(post("/users/create")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json)
-                .header("Authorization", "Baerer " + adminToken));
+                .header("Authorization", "Bearer " + adminToken));
     }
 
     /**
@@ -163,6 +164,28 @@ public class AdminUserFunctionTest {
     }
 
     @Test
+    public void AdminChangeASelectedUserPasswordShouldReturnHTTPSatusOK() throws Exception{
+        //Given
+        String adminToken = new UserBuilder(ctx).getAdminUser().getAdminUserAuthenticationString();
+        System.out.println(adminToken);
+        String user1 = this.createUser("user1", "password", adminToken).andReturn().getResponse().getContentAsString();
+        String user2 = this.createUser("user2", "password2", adminToken).andReturn().getResponse().getContentAsString();
+        String user3 = this.createUser("user3", "password3", adminToken).andReturn().getResponse().getContentAsString();
+        String user4 = this.createUser("user4", "password4", adminToken).andReturn().getResponse().getContentAsString();
+
+        String allUserJson = mockMvc.perform(get("/users").header("Authorization", adminToken))
+                .andExpect(status().isOk()).andDo(print())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(4)))
+                .andExpect(jsonPath("$[0].username").exists())
+                .andReturn().getResponse().getContentAsString();
+
+        String userIdFor= "";
+
+    }
+
+
+    @Test
     public void LogedInUserWhenChangePasswordShouldReturnHTTPStatusOK() throws Exception {
         //given
         String authString = new UserBuilder(ctx).setUsername("user1").setPassword("password").getUser().getUserAuthenticationString();
@@ -194,7 +217,7 @@ public class AdminUserFunctionTest {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.tokenId").exists())
                         .andExpect(jsonPath("$.tokenId").isString())
-                        .andExpect(jsonPath("$.user.username").value("usename"))
+                        .andExpect(jsonPath("$.user.username").value("username"))
                         .andExpect(jsonPath("$.user.password").value("pass2"));
 
         //logout request

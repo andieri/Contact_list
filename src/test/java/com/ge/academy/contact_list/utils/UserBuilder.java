@@ -40,8 +40,9 @@ public class UserBuilder {
     private MockHttpServletResponse createUser(String admin, String newUsername, String password) throws Exception {
        ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
-        node.put("username", newUsername);
+        node.put("userName", newUsername);
         node.put("password", password);
+        node.put("role", "USER");
         String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
 
         return mockMvc.perform(post("/users/create")
@@ -59,8 +60,6 @@ public class UserBuilder {
         node.put("password", password);
 
         String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
-//        String json = "{ \"username\" : "+'"'+ username +"\", \"password\" : \""+ password +"\" }";
-//        System.out.println(json);
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
@@ -86,14 +85,15 @@ public class UserBuilder {
                 this.username = "user"+UserBuilder.counter;
                 this.password = "passwd"+UserBuilder.counter;
                 UserBuilder.counter++;
-            } while (this.createUser(adminToken, username, password).getStatus() == 201);
+            } while (this.createUser(adminToken, username, password).getStatus() != 201);
         } else {
             System.out.println(username);
             System.out.println(password);
             this.createUser(adminToken, username, password);
         }
         userResponse = this.userLogin(username, password);
-        this.userToken =  JsonPath.read(userResponse, "$.tokenId");;
+        System.out.println(userResponse);
+        this.userToken =  JsonPath.read(userResponse.getContentAsString(), "$.tokenId");
         return this;
     }
 
