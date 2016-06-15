@@ -1,7 +1,7 @@
 package com.ge.academy.contact_list;
 
-import com.ge.academy.contact_list.utils.GroupIdBuilder;
-import com.ge.academy.contact_list_rest.ContactListApplication;
+import com.ge.academy.contact_list.utils.ContactGroup;
+import com.ge.academy.contact_list.utils.UserBuilder;
 import com.jayway.jsonpath.JsonPath;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ContactScenarios {
     String UserA;
-    String group;
+    String groupAName;
     @Autowired
     private WebApplicationContext context;
     private MockMvc mvc;
@@ -47,15 +47,16 @@ public class ContactScenarios {
                 .webAppContextSetup(context)
                 .build();
 
-        //UserA = new UserBuilder(context).getUser().getUserAuthenticationString();
-        UserA = "sajt";
+        UserA = new UserBuilder(context).getUser().getUserAuthenticationString();
 
-        group = GroupIdBuilder.builder()
-                .webApplicationContext(context)
+        ContactGroup contactGroup = ContactGroup.creator()
                 .authHeader(UserA)
-                .name("group1")
-                .displayName("GroupName1")
-                .build();
+                .name("name")
+                .displayName("displayName")
+                .webApplicationContext(context)
+                .create();
+        groupAName = contactGroup.getName();
+
     }
 
 
@@ -66,10 +67,10 @@ public class ContactScenarios {
 
         String contactid = "myid2";
 
-        addContact(UserA, group, "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
+        addContact(UserA, groupAName, "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
 
         String headerValue =
-                addContact(UserA, group, "{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}");
+                addContact(UserA, groupAName, "{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}");
 
         // Details
         MvcResult result = mvc.perform(get(headerValue)
@@ -81,14 +82,14 @@ public class ContactScenarios {
         System.out.println(JsonPath.read(result.getResponse().getContentAsString(), "$").toString());
 
         // Is contact in group?
-        mvc.perform(get("/groups/" + group + "/contacts")
+        mvc.perform(get("/groups/" + groupAName + "/contacts")
                 .header("Authorization", UserA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(1)));
 
         // Delete the contact
-        mvc.perform(delete("/groups/" + group + "/contacts/" + contactid)
+        mvc.perform(delete("/groups/" + groupAName + "/contacts/" + contactid)
                 .header("Authorization", UserA))
                 .andExpect(status().isOk());
 
@@ -98,7 +99,7 @@ public class ContactScenarios {
                 .andExpect(status().isNotFound());
 
         // Group shouldn't contain it
-        mvc.perform(get("/groups/" + group + "/contacts")
+        mvc.perform(get("/groups/" + groupAName + "/contacts")
                 .header("Authorization", UserA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(0)));
@@ -113,10 +114,10 @@ public class ContactScenarios {
 
         // Add two contacts
 
-        addContact(UserA, group, "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
+        addContact(UserA, groupAName, "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
 
         String headerValue =
-                addContact(UserA, group, "{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}");
+                addContact(UserA, groupAName, "{\"id\":\"" + contactid + "\",\"firstName\":\"myname\"}");
 
 
         // Details
@@ -129,14 +130,14 @@ public class ContactScenarios {
                 .andReturn();
 
         // Is contact in group?
-        mvc.perform(get("/groups/" + group + "/contacts")
+        mvc.perform(get("/groups/" + groupAName + "/contacts")
                 .header("Authorization", UserA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(1)));
 
         // Modify the contact
-        mvc.perform(put("/groups/" + group + "/contacts/" + contactid)
+        mvc.perform(put("/groups/" + groupAName + "/contacts/" + contactid)
                 .header("Authorization", UserA)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":\"" + contactid + "\",\"firstName\":\"mynewname\"}"))
@@ -156,11 +157,11 @@ public class ContactScenarios {
     public void search() throws Exception {
 
 
-        addContact(UserA, group, "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
+        addContact(UserA, groupAName, "{\"id\":\"notmyid\",\"firstName\":\"notmyname\"}");
 
-        addContact(UserA, group, "{\"id\":\"myid\",\"firstName\":\"myname\"}");
+        addContact(UserA, groupAName, "{\"id\":\"myid\",\"firstName\":\"myname\"}");
 
-        addContact(UserA, group, "{\"id\":\"abcabc\",\"firstName\":\"sanyi\"}");
+        addContact(UserA, groupAName, "{\"id\":\"abcabc\",\"firstName\":\"sanyi\"}");
 
 
         // Is contact in group?
