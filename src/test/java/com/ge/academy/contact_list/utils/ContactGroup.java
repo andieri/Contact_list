@@ -2,80 +2,84 @@ package com.ge.academy.contact_list.utils;
 
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Created by 212566301 on 6/13/2016.
  */
-public class GroupIdBuilder {
+public class ContactGroup {
 
     /*
-            fluent api builder pattern for groups
+            fluent api creator pattern for groups
 
             Example usage:
-            String groupId = GroupIdBuilder.builder()
+            String groupId = ContactGroup.creator()
                             .authHeader(authHeader)
                             .name("name")  // this is not mandatory
                             .displayName("displayName")
                             .webApplicationContext(context)
-                            .build();
+                            .create();
 
             TBD: unit tests
      */
 
-    public GroupIdBuilder() {
+    private ContactGroup() {
     }
 
     private String authHeader;
     private String name;
     private String displayName;
+    static AtomicInteger nameID;
     private WebApplicationContext webApplicationContext;
 
-    public static Builder builder() {
-        return new GroupIdBuilder.Builder();
+    public static ContactGroupCreator creator() {
+        return new ContactGroupCreator();
     }
 
-    public static class Builder {
+    public String getName() {
+        return name;
+    }
 
-        private GroupIdBuilder instance = new GroupIdBuilder();
+    public static class ContactGroupCreator {
+
+        private ContactGroup instance = new ContactGroup();
         private MockMvc mvc;
 
-        public Builder() {
+        public ContactGroupCreator() {
         }
 
-        public Builder authHeader(String authHeader){
+        public ContactGroupCreator authHeader(String authHeader){
             instance.authHeader = authHeader;
             return this;
         }
 
-        public Builder name(String name){
+        public ContactGroupCreator name(String name){
             instance.name = name;
             return this;
         }
 
-        public Builder displayName(String displayName){
+        public ContactGroupCreator displayName(String displayName){
             instance.displayName = displayName;
             return this;
         }
 
-        public Builder webApplicationContext(WebApplicationContext webApplicationContext){
+        public ContactGroupCreator webApplicationContext(WebApplicationContext webApplicationContext){
             instance.webApplicationContext = webApplicationContext;
             return this;
         }
 
-        public String build() throws Exception {
+        public ContactGroup create() throws Exception {
             this.mvc = MockMvcBuilders.webAppContextSetup(instance.webApplicationContext).build();
 
             if (instance.name == null) {
-                int randomID = (int) Math.floor(Math.random() * 1000000.0);
-                instance.name = "name"+randomID;
+                instance.name = "name"+nameID.incrementAndGet();
             }
 //            if (instance.displayName == null) {
 //                int randomID = (int) Math.floor(Math.random() * 1000000.0);
@@ -84,8 +88,10 @@ public class GroupIdBuilder {
             mvc.perform(post("/groups").header("Authorization", instance.authHeader)
                     .contentType(MediaType.APPLICATION_JSON_UTF8)
                     .content("{\"name\": \"" + instance.name + "\", \"displayName\": \"" + instance.displayName + "\"}"))
-                    .andDo(print());
-            return instance.name;
+                    .andDo(print())
+                    .andExpect(status().isCreated());
+
+            return instance;
         }
     }
 }
