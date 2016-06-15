@@ -170,7 +170,7 @@ public class GroupControllerTest {
         // When
         Contact contact = Contact.builder()
                 .authHeader(authHeader)
-                .groupId(groupName) // !!! rename
+                .groupId(groupName)
                 .id("id")
                 .firstName("firstName")
                 .lastName("lastName")
@@ -262,20 +262,6 @@ public class GroupControllerTest {
                 // Then
                 .andExpect(status().is4xxClientError())
                 .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    public void getGroupShouldReturnHttpStatus404WhenNotAvailable() throws Exception {
-        // Given
-        String authHeader = new UserBuilder(context).getUser().getUserAuthenticationString();
-
-        // When
-        mvc.perform(get("/groups/I_AM_ERROR").header("Authorization", authHeader))
-                .andDo(print())
-
-                // Then
-                .andExpect(status().is4xxClientError())
-                .andExpect(status().isNotFound());
     }
 
 }
