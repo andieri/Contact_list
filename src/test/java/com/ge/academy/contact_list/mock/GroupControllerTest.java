@@ -2,10 +2,9 @@ package com.ge.academy.contact_list.mock;
 
 import com.ge.academy.contact_list.ContactListApplication;
 import com.ge.academy.contact_list.utils.ContactGroup;
-import com.ge.academy.contact_list.utils.ContactIdBuilder;
+import com.ge.academy.contact_list.utils.Contact;
 import com.ge.academy.contact_list.utils.GroupIdModifier;
 import com.ge.academy.contact_list.utils.UserBuilder;
-import org.apache.tomcat.util.file.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,13 +14,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.matches;
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -159,7 +156,7 @@ public class GroupControllerTest {
         String groupName = contactGroup.getName();
 
         // When
-        String contactId = ContactIdBuilder.builder()
+        Contact contact = Contact.builder()
                 .authHeader(authHeader)
                 .groupId(groupName) // !!! rename
                 .id("id")
@@ -170,7 +167,9 @@ public class GroupControllerTest {
                 .nickName("nickName")
                 .jobTitle("jobTitle")
                 .webApplicationContext(context)
-                .build();
+                .create();
+
+        String contactId = contact.getId();
 
         // Then
         mvc.perform(get("/groups/" + groupName + "/contacts/" + contactId).header("Authorization", authHeader))

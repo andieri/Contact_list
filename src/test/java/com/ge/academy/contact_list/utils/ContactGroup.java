@@ -20,12 +20,14 @@ public class ContactGroup {
             fluent api creator pattern for groups
 
             Example usage:
-            String groupId = ContactGroup.creator()
+            ContactGroup contactGroup = ContactGroup.creator()
                             .authHeader(authHeader)
-                            .name("name")  // this is not mandatory
+                            .name("name")
                             .displayName("displayName")
                             .webApplicationContext(context)
                             .create();
+
+            String name = contactGroup.getName();
 
             TBD: unit tests
      */

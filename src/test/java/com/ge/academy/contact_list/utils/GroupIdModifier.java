@@ -25,7 +25,7 @@ public class GroupIdModifier {
                             .name("name")
                             .displayName("displayName")
                             .webApplicationContext(context)
-                            .build();
+                            .create();
 
             TBD: unit tests
      */

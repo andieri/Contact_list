@@ -2,7 +2,6 @@ package com.ge.academy.contact_list.utils;
 
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -12,23 +11,30 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 /**
  * Created by 212566301 on 6/13/2016.
  */
-public class ContactIdBuilder {
+public class Contact {
 
     /*
             fluent api builder pattern for groups
 
             Example usage (all parameters are necessary):
-            String groupId = GroupIdBuilder.builder()
-                            .authHeader(authHeader)
-                            .name("name")
-                            .displayName("displayName")
-                            .webApplicationContext(context)
-                            .build();
+                Contact contact = Contact.builder()
+                        .authHeader(authHeader)
+                        .groupId(groupName)
+                        .id("id")
+                        .firstName("firstName")
+                        .lastName("lastName")
+                        .homeEmail("home@email.email")
+                        .workEmail("work@email.email")
+                        .nickName("nickName")
+                        .jobTitle("jobTitle")
+                        .webApplicationContext(context)
+                        .create();
+            String id = contact.getId();
 
             TBD: unit tests
      */
 
-    public ContactIdBuilder() {
+    private Contact() {
     }
 
     private String authHeader;
@@ -42,13 +48,18 @@ public class ContactIdBuilder {
     private String jobTitle;
     private WebApplicationContext webApplicationContext;
 
+    public String getId() {
+        return id;
+    }
+
+
     public static Builder builder() {
-        return new ContactIdBuilder.Builder();
+        return new Contact.Builder();
     }
 
     public static class Builder {
 
-        private ContactIdBuilder instance = new ContactIdBuilder();
+        private Contact instance = new Contact();
         private MockMvc mvc;
 
         public Builder() {
@@ -104,7 +115,7 @@ public class ContactIdBuilder {
             return this;
         }
 
-        public String build() throws Exception {
+        public Contact create() throws Exception {
             this.mvc = MockMvcBuilders.webAppContextSetup(instance.webApplicationContext).build();
             mvc.perform(post("/groups/" + instance.groupId + "/contacts")
                     .header("Authorization", instance.authHeader)
@@ -114,7 +125,7 @@ public class ContactIdBuilder {
                             "\"workEmail\":\""+instance.workEmail+"\", \"nickName\":\""+instance.nickName+"\", " +
                             "\"jobTitle\":\""+instance.jobTitle+"\"}"))
                     .andDo(print());
-            return instance.id;
+            return instance;
         }
     }
 }
