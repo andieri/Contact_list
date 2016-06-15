@@ -1,4 +1,4 @@
-package com.ge.academy.contact_list.adminuser;
+package com.ge.academy.contact_list.mock;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = TestingApplication.class)
 @WebAppConfiguration
-public class CreateUserByAdmin {
+public class AdminUserFunctionTest {
     @Autowired
     private WebApplicationContext ctx;
     private MockMvc mockMvc;
@@ -44,12 +44,33 @@ public class CreateUserByAdmin {
         mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
     }
 
+    /**
+     * It is a helper function to create a login for a user. It given a username and password.
+     * It returns a ResultActions object which can tested.
+     * @param username  the username of a user
+     * @param password  the password of a user
+     * @return
+     * @throws Exception
+     */
+
     private ResultActions loginUser(String username, String password) throws Exception {
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", username)
                 .param("password", password)).andDo(print());
     }
+
+    /**
+     * Helper function for admin user to create a new user with the given username and password.
+     * It returns a ResultActions object.
+     *
+     *
+     * @param username  given username for the user
+     * @param password  given password for the user
+     * @param adminToken  given token of the logged in admin user
+     * @return
+     * @throws Exception
+     */
 
     private ResultActions createUser(String username, String password, String adminToken) throws Exception {
         return mockMvc.perform(post("/users/")
@@ -60,9 +81,9 @@ public class CreateUserByAdmin {
     }
 
     /**
-     * Adott egy admin user amelynek a felhasználói neve <strong>root</strong>
-     * jelszava <strong>Almafa123</strong>. A felhasználóval való belépés után
-     * lehet egy új felhasználót visszaadni.
+     *
+     *
+     * @throws Exception
      */
     @Test
     public void createUserShouldReturnHTTPStatusOK() throws Exception {
