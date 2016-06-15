@@ -1,8 +1,7 @@
-package com.ge.academy.contact_list.mock;
+package com.ge.academy.contact_list;
 
-import com.ge.academy.contact_list.TestingApplication;
 import com.ge.academy.contact_list.utils.GroupIdBuilder;
-import com.ge.academy.contact_list.utils.UserBuilder;
+import com.ge.academy.contact_list_rest.ContactListApplication;
 import com.jayway.jsonpath.JsonPath;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -30,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Created by 212565332 on 6/13/2016.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = TestingApplication.class)
+@SpringApplicationConfiguration(classes = ContactListApplication.class)
 @WebAppConfiguration//Scenarios for controller: 6, 7, 8
 
 public class ContactScenarios {
@@ -39,12 +38,11 @@ public class ContactScenarios {
     @Autowired
     private WebApplicationContext context;
     private MockMvc mvc;
-    @Autowired
-    private ContactController contacts;
+
 
     @Before
     public void setup() throws Exception {
-        contacts.reset();
+
         mvc = MockMvcBuilders
                 .webAppContextSetup(context)
                 .build();

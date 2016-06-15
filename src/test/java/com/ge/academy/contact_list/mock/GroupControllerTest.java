@@ -3,6 +3,7 @@ package com.ge.academy.contact_list.mock;
 import com.ge.academy.contact_list.TestingApplication;
 import com.ge.academy.contact_list.utils.ContactIdBuilder;
 import com.ge.academy.contact_list.utils.GroupIdBuilder;
+import com.ge.academy.contact_list.utils.GroupIdModifier;
 import com.ge.academy.contact_list.utils.UserBuilder;
 import org.apache.tomcat.util.file.Matcher;
 import org.junit.Before;
@@ -22,9 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.matches;
 import static org.mockito.Mockito.mock;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -42,40 +41,25 @@ public class GroupControllerTest {
 
     private MockMvc mvc;
 
-    String authHeader = "Bearer authHeader";
-
     @Before
     public void setup() throws Exception {
         mvc = MockMvcBuilders
                 .webAppContextSetup(context)
                 .build();
-
-//        UserBuilder userBuilder = new UserBuilder(context);
-//        String authHeader = userBuilder.getUser().getTokenID();
-    }
-
-    public String modifyGroupWithAuthHeaderReturnsGroupId(String groupId, String header, String name, String displayName) throws Exception {
-        MvcResult answer = mvc.perform(put("/groups/" + groupId).header("Authorization", header)
-                .contentType(MediaType.APPLICATION_JSON_UTF8)
-                .content("{\"name\": \"test2\", \"displayName\": \"testtest2\"}"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andReturn();
-
-        return answer.getResponse().getHeader("Location");
     }
 
     @Test
     public void getAllGroupsShouldReturnEmptyJsonWhenNoGroupsArePresent() throws Exception {
         // Given
-//        UserBuilder userBuilder = new UserBuilder(context);
-//        String authHeader = userBuilder.getUser().getTokenID();
+        UserBuilder userBuilder = new UserBuilder(context);
+        String authHeader = userBuilder.getUser().getUserAuthenticationString();
+        mvc.perform(delete("/groups").header("Authorization", authHeader));
 
         // When
         mvc.perform(get("/groups").header("Authorization", authHeader))
                 .andDo(print())
 
-        // Then
+                // Then
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(0)));
@@ -84,31 +68,32 @@ public class GroupControllerTest {
     @Test
     public void createGroupAndCheckIfCreated() throws Exception {
         // Given
-        // userA and userB and their auth headers
+        UserBuilder userBuilder = new UserBuilder(context);
+        String authHeader = userBuilder.getUser().getUserAuthenticationString();
+        mvc.perform(delete("/groups").header("Authorization", authHeader));
+
 
         // When
-//        GroupIdBuilder groupBuilder = new GroupIdBuilder();
-//        String groupId = groupBuilder.build(authHeader, "test", "testtest");
-//        String groupId = createGroupWithAuthHeaderReturnsGroupId(authHeader, "test", "testtest");
-
-        String groupId = GroupIdBuilder.builder()
-                            .authHeader(authHeader)
-                            .name("name")
-                            .displayName("displayName")
-                            .webApplicationContext(context)
-                            .build();
+        String groupName = GroupIdBuilder.builder()
+                .authHeader(authHeader)
+//                .name("name")
+                .displayName("displayName")
+                .webApplicationContext(context)
+                .build();
 
         // Then
         mvc.perform(get("/groups").header("Authorization", authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(1)));
 
         // Then 2
-        mvc.perform(get("/groups/" + groupId).header("Authorization", authHeader))
+        mvc.perform(get("/groups/" + groupName).header("Authorization", authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name", is("name")))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.name", is(groupName)))
                 .andExpect(jsonPath("$.displayName", is("displayName")));
 
     }
@@ -117,10 +102,13 @@ public class GroupControllerTest {
     public void renameGroupShouldReturnRenamedGroup() throws Exception {
 
         // Given
-        // user A and user B
-        String groupId = GroupIdBuilder.builder()
+        UserBuilder userBuilder = new UserBuilder(context);
+        String authHeader = userBuilder.getUser().getUserAuthenticationString();
+        mvc.perform(delete("/groups").header("Authorization", authHeader));
+
+        String groupName = GroupIdBuilder.builder()
                 .authHeader(authHeader)
-                .name("name")
+//                .name("name")
                 .displayName("displayName")
                 .webApplicationContext(context)
                 .build();
@@ -131,37 +119,52 @@ public class GroupControllerTest {
                 .andExpect(jsonPath("$", hasSize(1)));
 
         // When
-        String modifiedGroupId = modifyGroupWithAuthHeaderReturnsGroupId(groupId, authHeader, "test2", "testtest2");
+        String modifiedGroupId = GroupIdModifier.builder()
+                .authHeader(authHeader)
+                .groupId(groupName)
+                .name("name2")
+                .displayName("displayName2")
+                .webApplicationContext(context)
+                .build();
+
 
         // Then
         mvc.perform(get("/groups").header("Authorization", authHeader))
                 .andDo(print())
-                .andExpect(status().isOk());
-//                .andExpect(content().json("{'name': 'test2', 'displayName': 'testtest2'}"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$[0].name", is("name2")))
+                .andExpect(jsonPath("$[0].displayName", is("displayName2")));
 
         // Then 2
         mvc.perform(get("/groups/" + modifiedGroupId).header("Authorization", authHeader))
                 .andDo(print())
-                .andExpect(status().isOk());
-//                .andExpect(content().json("{}"));
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.name", is("name2")))
+                .andExpect(jsonPath("$.displayName", is("displayName2")));
     }
 
     @Test
     public void createNewContactShouldAddContactToGroup() throws Exception {
         // Given
-        // user A and user B
-        String groupId = GroupIdBuilder.builder()
+        UserBuilder userBuilder = new UserBuilder(context);
+        String authHeader = userBuilder.getUser().getUserAuthenticationString();
+        mvc.perform(delete("/groups").header("Authorization", authHeader));
+
+
+        String groupName = GroupIdBuilder.builder()
                 .authHeader(authHeader)
-                .name("name")
+//                .name("name")
                 .displayName("displayName")
                 .webApplicationContext(context)
                 .build();
 
         // When
-
         String contactId = ContactIdBuilder.builder()
                 .authHeader(authHeader)
-                .groupId("1")
+                .groupId(groupName) // !!! rename
                 .id("id")
                 .firstName("firstName")
                 .lastName("lastName")
@@ -173,11 +176,71 @@ public class GroupControllerTest {
                 .build();
 
         // Then
-        mvc.perform(get("/groups/" + groupId + "/contacts/" + contactId).header("Authorization", authHeader))
+        mvc.perform(get("/groups/" + groupName + "/contacts/" + contactId).header("Authorization", authHeader))
                 .andDo(print())
                 .andExpect(status().isOk());
-//                .andExpect(content().json("{'id':'test2', 'firstName':'firstname', 'lastName':'lastname'" +
-//                        "'homeEmail':'m@m.m', 'workEmail':'k@k.k', 'nickName':'nickname'" +
-//                        "'jobTitle':'jobtitle'}"));
+    }
+
+    @Test
+    public void differentUsersShouldNotAccessEachOthersGroups() throws Exception {
+
+        // Given
+        UserBuilder userBuilder = new UserBuilder(context);
+        String authHeader1 = userBuilder.getUser().getUserAuthenticationString();
+        String authHeader2 = userBuilder.getUser().getUserAuthenticationString();
+        mvc.perform(delete("/groups").header("Authorization", authHeader1));
+        mvc.perform(delete("/groups").header("Authorization", authHeader2));
+
+        // When
+        String groupName1 = GroupIdBuilder.builder()
+                .authHeader(authHeader1)
+//                .name("name")
+                .displayName("displayName")
+                .webApplicationContext(context)
+                .build();
+
+        String groupName2 = GroupIdBuilder.builder()
+                .authHeader(authHeader2)
+//                .name("name")
+                .displayName("displayName")
+                .webApplicationContext(context)
+                .build();
+
+        // Then
+        mvc.perform(get("/groups").header("Authorization", authHeader1))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        mvc.perform(get("/groups").header("Authorization", authHeader2))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        mvc.perform(get("/groups/" + groupName1).header("Authorization", authHeader1))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$[0].name", is(groupName1)))
+                .andExpect(jsonPath("$[0].displayName", is("displayName")));
+
+        mvc.perform(get("/groups/" + groupName2).header("Authorization", authHeader2))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$[0].name", is(groupName2)))
+                .andExpect(jsonPath("$[0].displayName", is("displayName")));
+
+        mvc.perform(get("/groups/" + groupName1).header("Authorization", authHeader2))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        mvc.perform(get("/groups/" + groupName2).header("Authorization", authHeader1))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$", hasSize(0)));
     }
 }
