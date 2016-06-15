@@ -20,12 +20,18 @@ public class ContactGroup {
             fluent api creator pattern for groups
 
             Example usage:
+            UserBuilder userBuilder = new UserBuilder(context).getUser();
+            String authHeader = userBuilder.getUserAuthenticationString();
+            String userName = userBuilder.getUsername();
+
+
             ContactGroup contactGroup = ContactGroup.creator()
-                            .authHeader(authHeader)
-                            .name("name")
-                            .displayName("displayName")
-                            .webApplicationContext(context)
-                            .create();
+                    .authHeader(authHeader)
+                    .userName(userName)
+                    .name("name")
+                    .displayName("displayName")
+                    .webApplicationContext(context)
+                    .create();
 
             String name = contactGroup.getName();
 
@@ -38,6 +44,7 @@ public class ContactGroup {
     private String authHeader;
     private String name;
     private String displayName;
+    private String userName;
     static AtomicInteger nameID;
     private WebApplicationContext webApplicationContext;
 
@@ -47,6 +54,10 @@ public class ContactGroup {
 
     public String getName() {
         return name;
+    }
+
+    public String getUserName() {
+        return userName;
     }
 
     public static class ContactGroupCreator {
@@ -72,6 +83,11 @@ public class ContactGroup {
             return this;
         }
 
+        public ContactGroupCreator userName(String userName){
+            instance.userName = userName;
+            return this;
+        }
+
         public ContactGroupCreator webApplicationContext(WebApplicationContext webApplicationContext){
             instance.webApplicationContext = webApplicationContext;
             return this;
@@ -89,7 +105,9 @@ public class ContactGroup {
 //            }
             mvc.perform(post("/groups").header("Authorization", instance.authHeader)
                     .contentType(MediaType.APPLICATION_JSON_UTF8)
-                    .content("{\"name\": \"" + instance.name + "\", \"displayName\": \"" + instance.displayName + "\"}"))
+                    .content("{\"id\" : {\"userName\":\""+instance.userName+"\"," +
+                            "\"contactGroupName\":\""+instance.name+"\"}," +
+                            "\"displayName\":\""+instance.displayName+"\"}"))
                     .andDo(print())
                     .andExpect(status().isCreated());
 
