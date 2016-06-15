@@ -2,9 +2,11 @@ package com.ge.academy.contact_list.mock;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ge.academy.contact_list.entity.Token;
 import com.ge.academy.contact_list.utils.UserBuilder;
 import com.jayway.jsonpath.JsonPath;
+import com.owlike.genson.Genson;
 import net.minidev.json.JSONObject;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -21,7 +23,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ge.academy.contact_list_rest.ContactListApplication;
+import com.ge.academy.contact_list.ContactListApplication;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -56,10 +58,11 @@ public class AdminUserFunctionTest {
 
     private ResultActions loginUser(String username, String password) throws Exception {
         return mockMvc.perform(post("/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("username", username)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{ \"userName\" : \""+ username +"\", \"password\" : \""+ password +"\" }" )
                 .param("password", password)).andDo(print());
     }
+
 
     /**
      * Helper function for admin user to create a new user with the given username and password.
@@ -74,10 +77,9 @@ public class AdminUserFunctionTest {
      */
 
     private ResultActions createUser(String username, String password, String adminToken) throws Exception {
-        return mockMvc.perform(post("/users/")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("username", username)
-                .param("password", password)
+        return mockMvc.perform(post("/users/create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{ \"userName\" : \""+ username +"\", \"password\" : \""+ password +"\" }" )
                 .header("Authorization", "Baerer " + adminToken));
     }
 
@@ -90,7 +92,7 @@ public class AdminUserFunctionTest {
     public void createUserShouldReturnHTTPStatusOK() throws Exception {
         //Given
         //when
-        String adminJson = this.loginUser("root", "Almafa123")
+        String adminJson = this.loginUser("Admin", "Alma1234")
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         ObjectMapper objectMapper = new ObjectMapper();
@@ -105,7 +107,7 @@ public class AdminUserFunctionTest {
     public void createdUserWhenLoginShouldReturnHTTPStatusOK() throws Exception {
         //Given
         //when
-        String adminJson = this.loginUser("root", "Almafa123")
+        String adminJson = this.loginUser("Admin", "Alma1234")
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
@@ -124,7 +126,7 @@ public class AdminUserFunctionTest {
     public void createdUserWhenLoginShouldReturnAnauthorizationToken() throws Exception {
         //Given
         //when
-        String adminJson = this.loginUser("root", "Almafa123")
+        String adminJson = this.loginUser("Admin", "Alma1234")
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
@@ -146,11 +148,18 @@ public class AdminUserFunctionTest {
         //given
         String authString = new UserBuilder(ctx).setUsername("user1").setPassword("password").getUser().getUserAuthenticationString();
         //when
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("username", "user1");
+        node.put("password", "passwd2");
+        node.put("newpassword", "password2");
+
+        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+        System.out.println(json);
         ResultActions passwordUpdateRequest = mockMvc.perform(put("/users")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("username", "user1")
-                .param("password", "password")
-                .param("newpassword", "newpassword")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json)
                 .header("Authorization", authString)).andDo(print());
 
         //then
@@ -166,12 +175,18 @@ public class AdminUserFunctionTest {
         String authString = new UserBuilder(ctx).setUsername("username").setPassword("pass").getUser().getUserAuthenticationString();
         //when
 
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("username", "user1");
+        node.put("password", "passwd2");
+        node.put("newpassword", "password2");
+
+        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+
         ResultActions passwordUpdateRequest =
                 mockMvc.perform(put("/users")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("username", "username")
-                        .param("password", "pass")
-                        .param("newpassword", "pass2"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
                         .andExpect(status().isOk());
 
         //logout request
@@ -189,12 +204,20 @@ public class AdminUserFunctionTest {
         String authString = new UserBuilder(ctx).setUsername("username").setPassword("pass").getUser().getUserAuthenticationString();
         //when
 
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("username", "user1");
+        node.put("password", "passwd2");
+        node.put("newpassword", "password2");
+
+        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+
+
         ResultActions passwordUpdateRequest =
                 mockMvc.perform(put("/users")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("username", "username")
-                        .param("password", "pass")
-                        .param("newpassword", "pass2"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
                         .andExpect(status().isOk());
 
         //logout request
