@@ -44,20 +44,12 @@ public class UserBuilder {
         node.put("password", password);
         String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
 
-
-        System.out.println(admin);
-        System.out.println("json "+json);
-        System.out.println(mockMvc);
-        mockMvc.perform(post("/users/create")
+        return mockMvc.perform(post("/users/create")
                .header("Authorization", "Bearer " + admin)
                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\n" +
-                        "  \"username\" : \"username\",\n" +
-                        "  \"password\" : \"pass\"\n" +
-                        "}"));
-                //.andDo(print());
-                //.andReturn().getResponse();
-        return null;
+                .content(json))
+                .andDo(print())
+                .andReturn().getResponse();
     }
 
     private MockHttpServletResponse userLogin(String username, String password) throws Exception {
