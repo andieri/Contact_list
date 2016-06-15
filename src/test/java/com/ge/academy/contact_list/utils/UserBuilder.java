@@ -115,6 +115,10 @@ public class UserBuilder {
         return this;
     }
 
+    public String getUsername() {
+        return username;
+    }
+
     public String getAdminToken() {
         return adminToken;
     }
