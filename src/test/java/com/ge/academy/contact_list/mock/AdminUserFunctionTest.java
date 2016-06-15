@@ -2,8 +2,7 @@ package com.ge.academy.contact_list.mock;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ge.academy.contact_list.TestingApplication;
-import com.ge.academy.contact_list.mock.Token;
+import com.ge.academy.contact_list.entity.Token;
 import com.ge.academy.contact_list.utils.UserBuilder;
 import com.jayway.jsonpath.JsonPath;
 import net.minidev.json.JSONObject;
@@ -22,6 +21,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.ge.academy.contact_list_rest.ContactListApplication;
+
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -32,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = TestingApplication.class)
+@SpringApplicationConfiguration(classes = ContactListApplication.class)
 @WebAppConfiguration
 public class AdminUserFunctionTest {
     @Autowired
@@ -93,7 +94,7 @@ public class AdminUserFunctionTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         ObjectMapper objectMapper = new ObjectMapper();
-        String token = objectMapper.readValue(adminJson, Token.class).getTokenID();
+        String token = objectMapper.readValue(adminJson, Token.class).getTokenId();
         //then
         this.createUser("user1", "pw1", token)
                 .andExpect(status().isCreated())
@@ -108,7 +109,7 @@ public class AdminUserFunctionTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        String token = new ObjectMapper().readValue(adminJson, Token.class).getTokenID();
+        String token = new ObjectMapper().readValue(adminJson, Token.class).getTokenId();
 
         this.createUser("user1", "pw1", token)
                 .andReturn().getResponse().getContentAsString();
@@ -127,7 +128,7 @@ public class AdminUserFunctionTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        String token = new ObjectMapper().readValue(adminJson, Token.class).getTokenID();
+        String token = new ObjectMapper().readValue(adminJson, Token.class).getTokenId();
 
         this.createUser("user1", "pw1", token)
                 .andReturn().getResponse().getContentAsString();

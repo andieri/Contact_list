@@ -1,13 +1,13 @@
 package com.ge.academy.contact_list.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ge.academy.contact_list.mock.Token;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.ge.academy.contact_list.entity.Token;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -33,7 +33,7 @@ public class UserBuilder {
 
     private MockHttpServletResponse createUser(Token admin, String newUsername, String password) throws Exception {
         return mockMvc.perform(post("/users")
-                .header("Authorization", "Bearer " + admin.getTokenID())
+                .header("Authorization", "Bearer " + admin.getTokenId())
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", newUsername)
                 .param("password", password))
@@ -94,10 +94,10 @@ public class UserBuilder {
     }
 
     public String getUserAuthenticationString() {
-        return "Bearer " + userToken.getTokenID();
+        return "Bearer " + userToken.getTokenId();
     }
 
     public String getAdminUserAuthenticationString() {
-        return "Bearer " + adminToken.getTokenID();
+        return "Bearer " + adminToken.getTokenId();
     }
 }
