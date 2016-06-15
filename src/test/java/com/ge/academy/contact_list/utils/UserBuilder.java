@@ -1,6 +1,7 @@
 package com.ge.academy.contact_list.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.jayway.jsonpath.JsonPath;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -33,19 +34,41 @@ public class UserBuilder {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
     }
 
+
+
+
     private MockHttpServletResponse createUser(String admin, String newUsername, String password) throws Exception {
-        return mockMvc.perform(post("/users/create")
-                .header("Authorization", "Bearer " + admin)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("username", newUsername)
-                .param("password", password)).andDo(print())
-                .andReturn().getResponse();
+       ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("username", newUsername);
+        node.put("password", password);
+        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+
+
+        System.out.println(admin);
+        System.out.println("json "+json);
+        System.out.println(mockMvc);
+        mockMvc.perform(post("/users/create")
+               .header("Authorization", "Bearer " + admin)
+               .contentType(MediaType.APPLICATION_JSON)
+                .content("{\n" +
+                        "  \"username\" : \"username\",\n" +
+                        "  \"password\" : \"pass\"\n" +
+                        "}"));
+                //.andDo(print());
+                //.andReturn().getResponse();
+        return null;
     }
 
     private MockHttpServletResponse userLogin(String username, String password) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("username", username);
+        node.put("password", password);
 
-        String json = "{ \"username\" : "+'"'+ username +"\", \"password\" : \""+ password +"\" }";
-        System.out.println(json);
+        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+//        String json = "{ \"username\" : "+'"'+ username +"\", \"password\" : \""+ password +"\" }";
+//        System.out.println(json);
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
@@ -63,7 +86,7 @@ public class UserBuilder {
         MockHttpServletResponse userResponse = null;
         int randomID = Integer.MIN_VALUE;
 
-
+        System.out.println(adminToken);
 
         if (this.username == null & this.password == null) {
             do {
@@ -73,6 +96,8 @@ public class UserBuilder {
                 UserBuilder.counter++;
             } while (this.createUser(adminToken, username, password).getStatus() == 201);
         } else {
+            System.out.println(username);
+            System.out.println(password);
             this.createUser(adminToken, username, password);
         }
         userResponse = this.userLogin(username, password);

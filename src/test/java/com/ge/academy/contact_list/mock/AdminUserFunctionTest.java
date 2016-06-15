@@ -1,6 +1,7 @@
 package com.ge.academy.contact_list.mock;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ge.academy.contact_list.entity.Token;
@@ -47,19 +48,39 @@ public class AdminUserFunctionTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
     }
 
+    private String createAUsernamePasswordJson(String username, String password) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("username", username);
+        node.put("password", password);
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+    }
+
+    private String createAUsernamePasswordNewPasswordJson(String username, String password, String newPassword) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("username", username);
+        node.put("password", password);
+        node.put("newpassword", newPassword);
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+    }
+
+
     /**
      * It is a helper function to create a login for a user. It given a username and password.
      * It returns a ResultActions object which can tested.
-     * @param username  the username of a user
-     * @param password  the password of a user
+     *
+     * @param username the username of a user
+     * @param password the password of a user
      * @return
      * @throws Exception
      */
 
     private ResultActions loginUser(String username, String password) throws Exception {
+        String json = createAUsernamePasswordJson(username, password);
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{ \"userName\" : \""+ username +"\", \"password\" : \""+ password +"\" }" )
+                .content(json)
                 .param("password", password)).andDo(print());
     }
 
@@ -68,24 +89,22 @@ public class AdminUserFunctionTest {
      * Helper function for admin user to create a new user with the given username and password.
      * It returns a ResultActions object.
      *
-     *
-     * @param username  given username for the user
-     * @param password  given password for the user
-     * @param adminToken  given token of the logged in admin user
+     * @param username   given username for the user
+     * @param password   given password for the user
+     * @param adminToken given token of the logged in admin user
      * @return
      * @throws Exception
      */
 
     private ResultActions createUser(String username, String password, String adminToken) throws Exception {
+        String json = createAUsernamePasswordJson(username, password);
         return mockMvc.perform(post("/users/create")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{ \"userName\" : \""+ username +"\", \"password\" : \""+ password +"\" }" )
+                .content(json)
                 .header("Authorization", "Baerer " + adminToken));
     }
 
     /**
-     *
-     *
      * @throws Exception
      */
     @Test
@@ -96,7 +115,7 @@ public class AdminUserFunctionTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         ObjectMapper objectMapper = new ObjectMapper();
-        String token = objectMapper.readValue(adminJson, Token.class).getTokenId();
+        String token = JsonPath.read(adminJson, "$.tokenId");
         //then
         this.createUser("user1", "pw1", token)
                 .andExpect(status().isCreated())
@@ -111,7 +130,7 @@ public class AdminUserFunctionTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        String token = new ObjectMapper().readValue(adminJson, Token.class).getTokenId();
+        String token = JsonPath.read(adminJson, "$.tokenId");
 
         this.createUser("user1", "pw1", token)
                 .andReturn().getResponse().getContentAsString();
@@ -130,7 +149,7 @@ public class AdminUserFunctionTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        String token = new ObjectMapper().readValue(adminJson, Token.class).getTokenId();
+        String token = JsonPath.read(adminJson, "$.tokenId");
 
         this.createUser("user1", "pw1", token)
                 .andReturn().getResponse().getContentAsString();
@@ -138,8 +157,8 @@ public class AdminUserFunctionTest {
 
         String userJson = this.loginUser("user1", "pw1")
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.tokenID").exists())
-                .andExpect(jsonPath("$.tokenID").isString())
+                .andExpect(jsonPath("$.tokenId").exists())
+                .andExpect(jsonPath("$.tokenId").isString())
                 .andReturn().getResponse().getContentAsString();
     }
 
@@ -147,16 +166,8 @@ public class AdminUserFunctionTest {
     public void LogedInUserWhenChangePasswordShouldReturnHTTPStatusOK() throws Exception {
         //given
         String authString = new UserBuilder(ctx).setUsername("user1").setPassword("password").getUser().getUserAuthenticationString();
+        String json = createAUsernamePasswordNewPasswordJson("user1", "password", "newpassword");
         //when
-
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = mapper.createObjectNode();
-        node.put("username", "user1");
-        node.put("password", "passwd2");
-        node.put("newpassword", "password2");
-
-        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
-        System.out.println(json);
         ResultActions passwordUpdateRequest = mockMvc.perform(put("/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json)
@@ -174,46 +185,36 @@ public class AdminUserFunctionTest {
         //given
         String authString = new UserBuilder(ctx).setUsername("username").setPassword("pass").getUser().getUserAuthenticationString();
         //when
-
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = mapper.createObjectNode();
-        node.put("username", "user1");
-        node.put("password", "passwd2");
-        node.put("newpassword", "password2");
-
-        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+        String json = createAUsernamePasswordNewPasswordJson("username", "pass", "pass2");
 
         ResultActions passwordUpdateRequest =
                 mockMvc.perform(put("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
-                        .andExpect(status().isOk());
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.tokenId").exists())
+                        .andExpect(jsonPath("$.tokenId").isString())
+                        .andExpect(jsonPath("$.user.username").value("usename"))
+                        .andExpect(jsonPath("$.user.password").value("pass2"));
 
         //logout request
 
         ResultActions relogin = this.loginUser("username", "pass2");
 
         //then
-
-        relogin.andExpect(status().isOk()).andReturn();
+        relogin.andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.tokenId").exists())
+                .andExpect(jsonPath("$.tokenId").isString())
+                .andExpect(jsonPath("$.user.username").value("usename"));
     }
 
     @Test
     public void LogedInUserWheChangePasswordShouldNotReloginWithOldPassword() throws Exception {
         //given
-        String authString = new UserBuilder(ctx).setUsername("username").setPassword("pass").getUser().getUserAuthenticationString();
+        String authString = new UserBuilder(ctx).setUsername("username").setPassword("passwd2").getUser().getUserAuthenticationString();
         //when
-
-
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = mapper.createObjectNode();
-        node.put("username", "user1");
-        node.put("password", "passwd2");
-        node.put("newpassword", "password2");
-
-        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
-
-
+        String json = createAUsernamePasswordNewPasswordJson("user1", "passwd2", "password2");
         ResultActions passwordUpdateRequest =
                 mockMvc.perform(put("/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -222,7 +223,7 @@ public class AdminUserFunctionTest {
 
         //logout request
 
-        ResultActions relogin = this.loginUser("username", "pass1");
+        ResultActions relogin = this.loginUser("username", "passwd2");
 
         //then
 
