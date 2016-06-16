@@ -1,22 +1,16 @@
 package com.ge.academy.contact_list.mock;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.ge.academy.contact_list.entity.Token;
 import com.ge.academy.contact_list.utils.UserBuilder;
 import com.jayway.jsonpath.JsonPath;
-import com.owlike.genson.Genson;
-import net.minidev.json.JSONObject;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.GsonBuilderUtils;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +21,8 @@ import org.springframework.web.context.WebApplicationContext;
 import com.ge.academy.contact_list.ContactListApplication;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -48,13 +44,22 @@ public class AdminUserFunctionTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
     }
 
-    private String createAUsernamePasswordJson(String username, String password) throws JsonProcessingException {
+    private String createUserJson(String username, String password) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("username", username);
+        node.put("password", password);
+        node.put("role", "USER");
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node).toString();
+    }
+
+    private String createCredentialUserJson(String username, String password) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
         node.put("userName", username);
         node.put("password", password);
         node.put("role", "USER");
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node).toString();
     }
 
     private String createAUsernamePasswordNewPasswordJson(String username, String password, String newPassword) throws JsonProcessingException {
@@ -63,7 +68,7 @@ public class AdminUserFunctionTest {
         node.put("username", username);
         node.put("oldPassword", password);
         node.put("newPassword", newPassword);
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node).toString();
     }
 
 
@@ -76,13 +81,12 @@ public class AdminUserFunctionTest {
      * @return
      * @throws Exception
      */
-
     private ResultActions loginUser(String username, String password) throws Exception {
-        String json = createAUsernamePasswordJson(username, password);
+        String json = createUserJson(username, password);
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json)
-                .param("password", password)).andDo(print());
+                .param("password", password));
     }
 
 
@@ -96,9 +100,9 @@ public class AdminUserFunctionTest {
      * @return
      * @throws Exception
      */
-
     private ResultActions createUser(String username, String password, String adminToken) throws Exception {
-        String json = createAUsernamePasswordJson(username, password);
+
+        String json = createCredentialUserJson(username, password);
         return mockMvc.perform(post("/users/create")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json)
@@ -109,24 +113,23 @@ public class AdminUserFunctionTest {
      * @throws Exception
      */
     @Test
-    public void createUserShouldReturnHTTPStatusOK() throws Exception {
+    public void whenLoggedInAdminCreateUserShouldReturnHTTPStatusOK() throws Exception {
         //Given
-        //when
+        String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();/*
         String adminJson = this.loginUser("Admin", "Alma1234")
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        ObjectMapper objectMapper = new ObjectMapper();
-        String token = JsonPath.read(adminJson, "$.tokenId");
+                .andReturn().getResponse().getContentAsString();*/
+        //when
+//        String token = JsonPath.read(adminJson, "$.tokenId");
+        ResultActions createdUser = this.createUser("user1", "pw1", adminToken);
         //then
-        this.createUser("user1", "pw1", token)
-                .andExpect(status().isCreated())
+        createdUser.andExpect(status().isCreated())
                 .andReturn();
     }
 
     @Test
-    public void createdUserWhenLoginShouldReturnHTTPStatusOK() throws Exception {
+    public void adminUserCreatedUserWhenLoginShouldReturnHTTPStatusOK() throws Exception {
         //Given
-        //when
         String adminJson = this.loginUser("Admin", "Alma1234")
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
@@ -135,17 +138,16 @@ public class AdminUserFunctionTest {
 
         this.createUser("user1", "pw1", token)
                 .andReturn().getResponse().getContentAsString();
+        //when
+        ResultActions loggedInUser = this.loginUser("user1", "pw1");
         //then
-
-        String userJson = this.loginUser("user1", "pw1")
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+        loggedInUser.andExpect(status().isOk())
+                .andReturn();
     }
 
     @Test
-    public void createdUserWhenLoginShouldReturnAnauthorizationToken() throws Exception {
+    public void adminUserCreatedUserWhenLoginShouldReturnTheAuthorizationTokenOfTheUser() throws Exception {
         //Given
-        //when
         String adminJson = this.loginUser("Admin", "Alma1234")
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
@@ -154,104 +156,151 @@ public class AdminUserFunctionTest {
 
         this.createUser("user1", "pw1", token)
                 .andReturn().getResponse().getContentAsString();
+        //when
+        ResultActions loggedInUser = this.loginUser("user1", "pw1");
         //then
+        String userTokenJson = loggedInUser
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(jsonPath("$.tokenId").exists())
+                .andExpect(jsonPath("$.tokenId").isString()).andReturn().getResponse().getContentAsString();
+        String userToken = JsonPath.read(userTokenJson, "$.tokenId");
+        assertEquals(token.length(), userToken.length());
+        assertNotEquals(token, userToken);
+    }
 
-        String userJson = this.loginUser("user1", "pw1")
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+    @Test
+    public void twoDifferentLoggedInUserAuthorizationTokenIsNotSame() throws Exception {
+        //Given
+        String adminJson = this.loginUser("Admin", "Alma1234")
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String token = JsonPath.read(adminJson, "$.tokenId");
+
+        this.createUser("user1", "pw1", token).andExpect(status().isCreated());
+
+        this.createUser("user2", "pw2", token).andExpect(status().isCreated());
+
+        String user1TokenJson = this.loginUser("user1", "pw1")
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                 .andExpect(jsonPath("$.tokenId").exists())
                 .andExpect(jsonPath("$.tokenId").isString())
                 .andReturn().getResponse().getContentAsString();
-    }
 
+        String user2TokenJson = this.loginUser("user2", "pw2")
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(jsonPath("$.tokenId").exists())
+                .andExpect(jsonPath("$.tokenId").isString())
+                .andReturn().getResponse().getContentAsString();
+        String user1Token = JsonPath.read(user1TokenJson, "$.tokenId");
+        String user2Token = JsonPath.read(user2TokenJson, "$.tokenId");
+        //when
+        assertNotEquals(user1Token, user2Token);
+        //then
+
+        assertNotEquals(user1Token, user2Token);
+    }
+/*
     @Test
-    public void AdminChangeASelectedUserPasswordShouldReturnHTTPSatusOK() throws Exception{
+    public void adminCanListAllUsers throws Exception {
         //Given
         String adminToken = new UserBuilder(ctx).getAdminUser().getAdminUserAuthenticationString();
-        System.out.println(adminToken);
+        System.out.println("AdminToken " + adminToken);
         String user1 = this.createUser("user1", "password", adminToken).andReturn().getResponse().getContentAsString();
+        System.out.println("user1 created");
         String user2 = this.createUser("user2", "password2", adminToken).andReturn().getResponse().getContentAsString();
+        System.out.println("user2 created");
         String user3 = this.createUser("user3", "password3", adminToken).andReturn().getResponse().getContentAsString();
+        System.out.println("user3 created");
         String user4 = this.createUser("user4", "password4", adminToken).andReturn().getResponse().getContentAsString();
+        System.out.println("user4 created");
 
         String allUserJson = mockMvc.perform(get("/users").header("Authorization", adminToken))
                 .andExpect(status().isOk()).andDo(print())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(4)))
-                .andExpect(jsonPath("$[0].username").exists())
+                .andExpect(jsonPath("$", hasSize(5)))
+                .andExpect(jsonPath("$[0].userName").exists())
                 .andReturn().getResponse().getContentAsString();
 
-        String userIdFor= "";
+        String userIdForSelectedUser = JsonPath.read(allUserJson, "$[0].userName");
+        String json = "{ \"name\" : \"" + userIdForSelectedUser + "\", \"oldPassword\" : \"password\", \"newPassword\" : \"pass\" }";
 
-    }
-
-
-    @Test
-    public void LogedInUserWhenChangePasswordShouldReturnHTTPStatusOK() throws Exception {
-        //given
-        String authString = new UserBuilder(ctx).setUsername("user1").setPassword("password").getUser().getUserAuthenticationString();
-        String json = createAUsernamePasswordNewPasswordJson("user1", "password", "newpassword");
-        //when
-        ResultActions passwordUpdateRequest = mockMvc.perform(put("/users")
+        mockMvc.perform(put("/" + userIdForSelectedUser + "/changePassword")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json)
-                .header("Authorization", authString)).andDo(print());
+                .content(json))
+                .andExpect(status().isOk());
 
-        //then
-        passwordUpdateRequest.andExpect(status().isOk())
-                .andReturn();
-        //mockMvc.perform(get("/groups")).andExpect(status().isForbidden());
     }
 
-
-    @Test
-    public void LogedInUserWheChangePasswordShouldReloginWithNewPassword() throws Exception {
-        //given
-        String authString = new UserBuilder(ctx).setUsername("username").setPassword("pass").getUser().getUserAuthenticationString();
-        //when
-        String json = createAUsernamePasswordNewPasswordJson("username", "pass", "pass2");
-
-        ResultActions passwordUpdateRequest =
-                mockMvc.perform(put("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.tokenId").exists())
-                        .andExpect(jsonPath("$.tokenId").isString())
-                        .andExpect(jsonPath("$.user.username").value("username"))
-                        .andExpect(jsonPath("$.user.password").value("pass2"));
-
-        //logout request
-
-        ResultActions relogin = this.loginUser("username", "pass2");
-
-        //then
-        relogin.andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.tokenId").exists())
-                .andExpect(jsonPath("$.tokenId").isString())
-                .andExpect(jsonPath("$.user.username").value("usename"));
-    }
-
-    @Test
-    public void LogedInUserWheChangePasswordShouldNotReloginWithOldPassword() throws Exception {
-        //given
-        String authString = new UserBuilder(ctx).setUsername("username").setPassword("passwd2").getUser().getUserAuthenticationString();
-        //when
-        String json = createAUsernamePasswordNewPasswordJson("user1", "passwd2", "password2");
-        ResultActions passwordUpdateRequest =
-                mockMvc.perform(put("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                        .andExpect(status().isOk());
-
-        //logout request
-
-        ResultActions relogin = this.loginUser("username", "passwd2");
-
-        //then
-
-        relogin.andExpect(status().is4xxClientError()).andReturn();
-    }
+*/
+//    @Test
+//    public void LogedInUserWhenChangePasswordShouldReturnHTTPStatusOK() throws Exception {
+//        //given
+//        String authString = new UserBuilder(ctx).setUsername("user1").setPassword("password").getUser().getUserAuthenticationString();
+//        String json = createAUsernamePasswordNewPasswordJson("user1", "password", "newpassword");
+//        //when
+//        ResultActions passwordUpdateRequest = mockMvc.perform(put("/users")
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content(json)
+//                .header("Authorization", authString)).andDo(print());
+//
+//        //then
+//        passwordUpdateRequest.andExpect(status().isOk())
+//                .andReturn();
+//        //mockMvc.perform(get("/groups")).andExpect(status().isForbidden());
+//    }
+//
+//
+//    @Test
+//    public void LogedInUserWheChangePasswordShouldReloginWithNewPassword() throws Exception {
+//        //given
+//        String authString = new UserBuilder(ctx).setUsername("username").setPassword("pass").getUser().getUserAuthenticationString();
+//        //when
+//        String json = createAUsernamePasswordNewPasswordJson("username", "pass", "pass2");
+//
+//        ResultActions passwordUpdateRequest =
+//                mockMvc.perform(put("/users")
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .content(json))
+//                        .andExpect(status().isOk())
+//                        .andExpect(jsonPath("$.tokenId").exists())
+//                        .andExpect(jsonPath("$.tokenId").isString())
+//                        .andExpect(jsonPath("$.user.username").value("username"))
+//                        .andExpect(jsonPath("$.user.password").value("pass2"));
+//
+//        //logout request
+//
+//        ResultActions relogin = this.loginUser("username", "pass2");
+//
+//        //then
+//        relogin.andExpect(status().isOk())
+//                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+//                .andExpect(jsonPath("$.tokenId").exists())
+//                .andExpect(jsonPath("$.tokenId").isString())
+//                .andExpect(jsonPath("$.user.username").value("usename"));
+//    }
+//
+//    @Test
+//    public void LogedInUserWheChangePasswordShouldNotReloginWithOldPassword() throws Exception {
+//        //given
+//        String authString = new UserBuilder(ctx).setUsername("username").setPassword("passwd2").getUser().getUserAuthenticationString();
+//        //when
+//        String json = createAUsernamePasswordNewPasswordJson("user1", "passwd2", "password2");
+//        ResultActions passwordUpdateRequest =
+//                mockMvc.perform(put("/users")
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .content(json))
+//                        .andExpect(status().isOk());
+//
+//        //logout request
+//
+//        ResultActions relogin = this.loginUser("username", "passwd2");
+//
+//        //then
+//
+//        relogin.andExpect(status().is4xxClientError()).andReturn();
+//    }
 
 
 }
