@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.ge.academy.contact_list.entity.Token;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -21,43 +22,42 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 public class UserBuilder {
 
     private MockMvc mockMvc;
-
+    private WebApplicationContext ctx;
     private static long counter = 1L;
 
-    private String adminToken = null;
     private String userToken = null;
-    private String username = null;
-    private String password = null;
+    private User user;
 
 
     public UserBuilder(WebApplicationContext ctx) {
+        this.ctx = ctx;
         this.mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
+        this.user = new User(null, null);
     }
 
-
-
-
-    private MockHttpServletResponse createUser(String admin, String newUsername, String password) throws Exception {
-       ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = mapper.createObjectNode();
-        node.put("userName", newUsername);
-        node.put("password", password);
-        node.put("role", "USER");
-        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
-
-        return mockMvc.perform(post("/users/create")
-               .header("Authorization", "Bearer " + admin)
-               .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
-                .andDo(print())
-                .andReturn().getResponse();
-    }
-
-    private MockHttpServletResponse userLogin(String username, String password) throws Exception {
+    private String createUserJson(String username, String password, String role) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
         node.put("username", username);
         node.put("password", password);
+        node.put("role", role);
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node).toString();
+    }
+
+    private MockHttpServletResponse createUser(String adminToken) throws Exception {
+        String adminUserJson = createUserJson(this.user.getUsername(), this.user.getPassword(), this.user.getRole());
+        return mockMvc.perform(post("/users/create")
+                .header("Authorization", adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(adminUserJson))
+                .andReturn().getResponse();
+    }
+
+    private MockHttpServletResponse userLogin() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.put("username", this.user.getUsername());
+        node.put("password", this.user.getPassword());
 
         String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
         return mockMvc.perform(post("/login")
@@ -66,64 +66,67 @@ public class UserBuilder {
                 .andDo(print()).andReturn().getResponse();
     }
 
-    public UserBuilder getAdminUser() throws Exception {
-        String adminJson = this.userLogin("Admin", "Alma1234").getContentAsString();
-        this.adminToken = JsonPath.read(adminJson, "$.tokenId");
+    public UserBuilder createAdminUser() throws Exception {
+        this.user = new AdminUser("Admin", "Alma1234");
         return this;
     }
 
-    public UserBuilder getUser() throws Exception {
-        this.getAdminUser();
-        MockHttpServletResponse userResponse = null;
-        int randomID = Integer.MIN_VALUE;
+    public UserBuilder build() throws Exception {
+        if (this.user instanceof AdminUser) {
+            String adminJson = this.userLogin().getContentAsString();
+            this.userToken = JsonPath.read(adminJson, "$.tokenId");
+            return this;
+        }
+        if (this.user instanceof User) {
+            MockHttpServletResponse userResponse = userLogin();
+//        System.out.println(userResponse);
+            this.userToken = JsonPath.read(userResponse.getContentAsString(), "$.tokenId");
+            return this;
+        }
+        return null;
+    }
 
+    public UserBuilder createUser() throws Exception {
+        String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();
         System.out.println(adminToken);
 
-        if (this.username == null & this.password == null) {
+        if (this.user.getUsername() == null & this.user.getPassword() == null) {
             do {
-                randomID = (int) Math.floor(Math.random() * 1000.0);
-                this.username = "user"+UserBuilder.counter;
-                this.password = "passwd"+UserBuilder.counter;
+                this.user.setUsername("user" + UserBuilder.counter);
+                this.user.setPassword("passwd" + UserBuilder.counter);
                 UserBuilder.counter++;
-            } while (this.createUser(adminToken, username, password).getStatus() != 201);
+            } while (this.createUser(adminToken).getStatus() != 201);
         } else {
-            System.out.println(username);
-            System.out.println(password);
-            this.createUser(adminToken, username, password);
+            System.out.println(this.user.getUsername());
+            System.out.println(this.user.getPassword());
+            this.createUser(adminToken);
         }
-        userResponse = this.userLogin(username, password);
-        System.out.println(userResponse);
-        this.userToken =  JsonPath.read(userResponse.getContentAsString(), "$.tokenId");
         return this;
     }
 
     public UserBuilder setUsername(String username) {
-        this.username = username;
+        this.user.setUsername(username);
         return this;
     }
 
     public UserBuilder setPassword(String password) {
-        this.password = password;
+        this.user.setPassword(password);
         return this;
     }
 
     public String getUsername() {
-        return username;
+        return this.user.getUsername();
     }
 
-    public String getAdminToken() {
-        return adminToken;
+    public String getPassword(){
+        return this.user.getPassword();
     }
 
-    public String getUserToken() {
-        return userToken;
+    public String getRole(){
+        return this.user.getRole();
     }
 
-    public String getUserAuthenticationString() {
+    public String getAuthenticationString() {
         return "Bearer " + userToken;
-    }
-
-    public String getAdminUserAuthenticationString() {
-        return "Bearer " + adminToken;
     }
 }
