@@ -9,11 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ge.academy.contact_list.entity.Token;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 /**
  * Created by 212566304 on 6/13/2016.
@@ -63,7 +59,6 @@ public class UserBuilder {
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
-//                .andDo(print())
                 .andReturn().getResponse();
     }
 
@@ -80,7 +75,6 @@ public class UserBuilder {
         }
         if (this.user instanceof User) {
             MockHttpServletResponse userResponse = userLogin();
-//        System.out.println(userResponse);
             this.userToken = JsonPath.read(userResponse.getContentAsString(), "$.tokenId");
             return this;
         }
@@ -89,7 +83,6 @@ public class UserBuilder {
 
     public UserBuilder createUser() throws Exception {
         String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();
-        System.out.println("Admin létrehoz egy felhasználót \n Admin bearer string: "+adminToken);
 
         if (this.user.getUsername() == null & this.user.getPassword() == null) {
             do {
@@ -98,8 +91,6 @@ public class UserBuilder {
                 UserBuilder.counter++;
             } while (this.createUser(adminToken).getStatus() != 201);
         } else {
-//            System.out.println(this.user.getUsername());
-//            System.out.println(this.user.getPassword());
             this.createUser(adminToken);
         }
         return this;

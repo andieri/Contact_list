@@ -1,10 +1,7 @@
 package com.ge.academy.contact_list;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ge.academy.contact_list.utils.UserBuilder;
-import com.jayway.jsonpath.JsonPath;
+import com.ge.academy.contact_list.utils.UserJsonCreator;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,12 +16,11 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ge.academy.contact_list.entity.Token;
-import com.ge.academy.contact_list.ContactListApplication;
 
-import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -40,28 +36,90 @@ public class SimpleUserFunctionTest {
     @Autowired
     private WebApplicationContext ctx;
     private MockMvc mockMvc;
-
+    private UserJsonCreator creator;
     private String userToken1;
-
-    private String createUserJson(String username, String password) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = mapper.createObjectNode();
-        node.put("userName", username);
-        node.put("password", password);
-        node.put("role", "USER");
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node).toString();
-    }
 
     @Before
     public void setup() throws Exception{
         mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
         this.userToken1 = new UserBuilder(ctx).setUsername("cheatUser").setPassword("cheater").createUser().build().getAuthenticationString();
+        this.creator = new UserJsonCreator();
     }
+    private ResultActions loginUser(String username, String password) throws Exception {
+        String json = creator.getJsonForLogin(username, password);
+        return mockMvc.perform(post("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json)
+                .param("password", password));
+    }
+
+    @Test
+    public void logedInUserWhenChangePasswordShouldReturnHTTPStatusOK() throws Exception {
+        //given
+        String json = creator.getJSonForChangePassword("password", "newpassword");
+        //when
+        ResultActions passwordUpdateRequest = mockMvc.perform(put("/users/changepassword")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json)
+                .header("Authorization", userToken1));
+
+        //then
+        passwordUpdateRequest.andExpect(status().isOk())
+                .andReturn();
+        //mockMvc.perform(get("/groups")).andExpect(status().isForbidden());
+    }
+
+
+    @Test
+    public void LogedInUserWheChangePasswordShouldReloginWithNewPassword() throws Exception {
+        //given
+        //when
+        String json = creator.getJSonForChangePassword("pass", "pass2");
+
+        ResultActions passwordUpdateRequest =
+                mockMvc.perform(put("/users/changepassword")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json)
+                        .header("Authorization", userToken1))
+                        .andExpect(status().isOk());
+
+        //logout request
+
+        ResultActions relogin = this.loginUser("username", "pass2");
+
+        //then
+        relogin.andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.tokenId").exists())
+                .andExpect(jsonPath("$.tokenId").isString());
+    }
+
+    @Test
+    public void LogedInUserWhenChangePasswordShouldNotReloginWithOldPassword() throws Exception {
+        //given
+        String json = creator.getJSonForChangePassword("passwd2", "password2");
+        ResultActions passwordUpdateRequest =
+                mockMvc.perform(put("/users/changePassword")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json)
+                        .header("Authorization", userToken1))
+                        .andExpect(status().isOk());
+
+        //when
+
+        ResultActions relogin = this.loginUser("username", "passwd2");
+
+        //then
+
+        relogin.andExpect(status().is4xxClientError()).andReturn();
+    }
+
+
 
     @Test
     public void UserShouldNotCreateUser() throws Exception {
         //Given
-        String json = createUserJson("proba", "probapw");
+        String json = creator.getJSonForCreateUser("proba", "probapw");
         System.out.println("Felhasználó bearer string: "+ this.userToken1);
         //when
         ResultActions createUserByUserAction = mockMvc.perform(post("/users/create")
