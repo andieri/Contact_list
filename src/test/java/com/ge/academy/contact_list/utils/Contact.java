@@ -2,11 +2,15 @@ package com.ge.academy.contact_list.utils;
 
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Created by 212566301 on 6/13/2016.
@@ -16,20 +20,45 @@ public class Contact {
     /*
             fluent api builder pattern for groups
 
-            Example usage (all parameters are necessary):
-                Contact contact = Contact.builder()
-                        .authHeader(authHeader)
-                        .groupId(groupName)
-                        .id("id")
-                        .firstName("firstName")
-                        .lastName("lastName")
-                        .homeEmail("home@email.email")
-                        .workEmail("work@email.email")
-                        .nickName("nickName")
-                        .jobTitle("jobTitle")
-                        .webApplicationContext(context)
-                        .create();
-            String id = contact.getId();
+            Example usage (from the beginning):
+
+            //create user
+            UserBuilder userBuilder = new UserBuilder(context).createUser().build();
+            String authHeader = userBuilder.getAuthenticationString();
+            String userName = userBuilder.getUsername();
+
+            // create contactgroup
+            ContactGroup contactGroup = ContactGroup.creator()
+                    .authHeader(authHeader)
+                    .userName(userName)
+                    .name("name")
+                    .displayName("displayName")
+                    .webApplicationContext(context)
+                    .create();
+
+            String groupName = contactGroup.getName();
+
+            // create contact
+            Contact contact = Contact.builder()
+                    .authHeader(authHeader)
+                    .groupName(groupName)
+                    .firstName("firstName")
+                    .lastName("lastName")
+                    .homeEmail("home@email.email")
+                    .workEmail("work@email.email")
+                    .nickName("nickName")
+                    .jobTitle("jobTitle")
+                    .webApplicationContext(context)
+                    .create();
+
+            // contactId is assigned automatically, starts with 1
+            // it is read from the location header of the response:
+            String contactId = contact.getId();
+
+            // if everything is fine, this should work:
+            mvc.perform(get("/groups/" + groupName + "/contacts/" + contactId)
+                .header("Authorization", authHeader))
+                .andExpect(status().isOk());
 
             TBD: unit tests
      */
@@ -38,7 +67,8 @@ public class Contact {
     }
 
     private String authHeader;
-    private String groupId;
+    private String userName;
+    private String groupName;
     private String id;
     private String firstName;
     private String lastName;
@@ -70,8 +100,13 @@ public class Contact {
             return this;
         }
 
-        public Builder groupId(String groupId){
-            instance.groupId = groupId;
+        public Builder userName(String userName){
+            instance.userName = userName;
+            return this;
+        }
+
+        public Builder groupName(String groupName){
+            instance.groupName = groupName;
             return this;
         }
 
@@ -117,14 +152,29 @@ public class Contact {
 
         public Contact create() throws Exception {
             this.mvc = MockMvcBuilders.webAppContextSetup(instance.webApplicationContext).build();
-            mvc.perform(post("/groups/" + instance.groupId + "/contacts")
+            MvcResult contactCreated = mvc.perform(post("/groups/" + instance.groupName + "/contacts")
                     .header("Authorization", instance.authHeader)
                     .contentType(MediaType.APPLICATION_JSON_UTF8)
-                    .content("{\"id\":\""+instance.id+"\", \"firstName\":\""+instance.firstName+"\", " +
-                            "\"lastName\":\""+instance.lastName+"\", \"homeEmail\":\""+instance.homeEmail+"\", " +
-                            "\"workEmail\":\""+instance.workEmail+"\", \"nickName\":\""+instance.nickName+"\", " +
-                            "\"jobTitle\":\""+instance.jobTitle+"\"}"))
-                    .andDo(print());
+                    .content("{\n" +
+//                            "    \"id\" : {\n" +
+//                            "        \"userName\":\""+instance.userName+"\",\n" +
+//                            "        \"contactGroupName\":\""+instance.groupName+"\",\n" +
+//                            "        \"contactId\":2\n" +
+//                            "    }, \n" +
+                            "    \"firstName\":\"" + instance.firstName + "\",\n" +
+                            "    \"lastName\":\"" + instance.lastName + "\",\n" +
+                            "    \"homeEmail\":\"" + instance.homeEmail + "\",\n" +
+                            "    \"workEmail\":\"" + instance.workEmail + "\",\n" +
+                            "    \"nickName\":\"" + instance.nickName + "\",\n" +
+                            "    \"jobTitle\":\"" + instance.jobTitle + "\"\n" +
+                            "}"))
+                    .andDo(print())
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            String[] locationHeaderSplitted = contactCreated.getResponse().getHeader("Location").split("/");
+            instance.id = locationHeaderSplitted[locationHeaderSplitted.length-1];
+
             return instance;
         }
     }

@@ -23,6 +23,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -49,7 +50,7 @@ public class ContactScenarios {
                 .webAppContextSetup(context)
                 .build();
 
-        UserA = new UserBuilder(context);
+        UserA = new UserBuilder(context).createUser().build();
 
         groupA = ContactGroup.creator()
                 .authHeader(UserA.getAuthenticationString())
@@ -58,7 +59,6 @@ public class ContactScenarios {
                 .displayName("displayName")
                 .webApplicationContext(context)
                 .create();
-
 
     }
 
@@ -73,14 +73,15 @@ public class ContactScenarios {
         System.out.println(groupA.getName());
         addContact(UserA.getAuthenticationString(), groupA.getName(), "firstName", "notmyname");
 
-        String headerValue =
+        String ID =
                 addContact(UserA.getAuthenticationString(), groupA.getName(), contactid, "myname");
 
         // Details
-        MvcResult result = mvc.perform(get(headerValue)
+        MvcResult result = mvc.perform(get("/groups/" + groupA.getName() + "/contacts/" + ID)
                 .header("Authorization", UserA.getAuthenticationString()))
+                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", Matchers.is(contactid)))
+                .andExpect(jsonPath("$.firstName", Matchers.is("myname")))
                 .andReturn();
 
         System.out.println(JsonPath.read(result.getResponse().getContentAsString(), "$").toString());
@@ -89,16 +90,17 @@ public class ContactScenarios {
         mvc.perform(get("/groups/" + groupA.getName() + "/contacts")
                 .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(1)));
+                .andExpect(jsonPath("$", hasSize(2)));
+//                .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(1)));
 
         // Delete the contact
-        mvc.perform(delete("/groups/" + groupA.getName() + "/contacts/" + contactid)
+        mvc.perform(delete("/groups/" + groupA.getName() + "/contacts/" + ID)
                 .header("Authorization", UserA.getAuthenticationString()))
+                .andDo(print())
                 .andExpect(status().isOk());
 
         // Details(it should fail)
-        mvc.perform(get(headerValue)
+        mvc.perform(get("/groups/" + groupA.getName() + "/contacts/" + ID)
                 .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isNotFound());
 
@@ -233,12 +235,9 @@ public class ContactScenarios {
 
 
     private String addContact(String user, String group, String id, String firstName) throws Exception {
-
-
         Contact contact = Contact.builder()
                 .authHeader(user)
-                .groupId(group)
-                .id(id)
+                .groupName(group)
                 .firstName(firstName)
                 .lastName("lastName")
                 .homeEmail("home@email.email")
@@ -246,8 +245,10 @@ public class ContactScenarios {
                 .nickName("nickName")
                 .jobTitle("jobTitle")
                 .webApplicationContext(context)
+                .id(id)
                 .create();
-        return "/groups/" + group + "/contacts/" + contact.getId();
+
+        return contact.getId();
 
     }
 }
