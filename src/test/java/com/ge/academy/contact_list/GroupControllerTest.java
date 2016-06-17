@@ -169,8 +169,7 @@ public class GroupControllerTest {
         // When
         Contact contact = Contact.builder()
                 .authHeader(authHeader)
-                .groupId(groupName)
-                .id("id")
+                .groupName(groupName)
                 .firstName("firstName")
                 .lastName("lastName")
                 .homeEmail("home@email.email")
