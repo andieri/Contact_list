@@ -56,7 +56,7 @@ public class UserBuilder {
     private MockHttpServletResponse userLogin() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
-        node.put("username", this.user.getUsername());
+        node.put("userName", this.user.getUsername());
         node.put("password", this.user.getPassword());
 
         String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);

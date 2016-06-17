@@ -48,7 +48,7 @@ public class AdminUserFunctionTest {
     private String createUserJson(String username, String password) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
-        node.put("username", username);
+        node.put("userName", username);
         node.put("password", password);
         node.put("role", "USER");
         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node).toString();
