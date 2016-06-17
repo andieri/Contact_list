@@ -45,15 +45,6 @@ public class AdminUserFunctionTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
     }
 
-    private String createUserJson(String username, String password) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = mapper.createObjectNode();
-        node.put("userName", username);
-        node.put("password", password);
-        node.put("role", "USER");
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node).toString();
-    }
-
     private String createCredentialUserJson(String username, String password) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
@@ -83,7 +74,7 @@ public class AdminUserFunctionTest {
      * @throws Exception
      */
     private ResultActions loginUser(String username, String password) throws Exception {
-        String json = createUserJson(username, password);
+        String json = createCredentialUserJson(username, password);
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json)
