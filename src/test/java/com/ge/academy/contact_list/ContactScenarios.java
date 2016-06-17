@@ -49,10 +49,10 @@ public class ContactScenarios {
                 .webAppContextSetup(context)
                 .build();
 
-        UserA = new UserBuilder(context).getUser();
+        UserA = new UserBuilder(context);
 
         groupA = ContactGroup.creator()
-                .authHeader(UserA.getUserAuthenticationString())
+                .authHeader(UserA.getAuthenticationString())
                 .userName(UserA.getUsername())
                 .name("name")
                 .displayName("displayName")
@@ -69,16 +69,16 @@ public class ContactScenarios {
     public void createAndDeleteContact() throws Exception {
 
         String contactid = "myid2";
-        System.out.println(UserA.getUserAuthenticationString());
+        System.out.println(UserA.getAuthenticationString());
         System.out.println(groupA.getName());
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "firstName", "notmyname");
+        addContact(UserA.getAuthenticationString(), groupA.getName(), "firstName", "notmyname");
 
         String headerValue =
-                addContact(UserA.getUserAuthenticationString(), groupA.getName(), contactid, "myname");
+                addContact(UserA.getAuthenticationString(), groupA.getName(), contactid, "myname");
 
         // Details
         MvcResult result = mvc.perform(get(headerValue)
-                .header("Authorization", UserA.getUserAuthenticationString()))
+                .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", Matchers.is(contactid)))
                 .andReturn();
@@ -87,24 +87,24 @@ public class ContactScenarios {
 
         // Is contact in group?
         mvc.perform(get("/groups/" + groupA.getName() + "/contacts")
-                .header("Authorization", UserA.getUserAuthenticationString()))
+                .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(1)));
 
         // Delete the contact
         mvc.perform(delete("/groups/" + groupA.getName() + "/contacts/" + contactid)
-                .header("Authorization", UserA.getUserAuthenticationString()))
+                .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isOk());
 
         // Details(it should fail)
         mvc.perform(get(headerValue)
-                .header("Authorization", UserA.getUserAuthenticationString()))
+                .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isNotFound());
 
         // Group shouldn't contain it
         mvc.perform(get("/groups/" + groupA.getName() + "/contacts")
-                .header("Authorization", UserA.getUserAuthenticationString()))
+                .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(0)));
 
@@ -118,16 +118,16 @@ public class ContactScenarios {
 
         // Add two contacts
 
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "notmyid", "notmyname");
+        addContact(UserA.getAuthenticationString(), groupA.getName(), "notmyid", "notmyname");
 
         String headerValue =
-                addContact(UserA.getUserAuthenticationString(), groupA.getName(), "myid", "myname");
+                addContact(UserA.getAuthenticationString(), groupA.getName(), "myid", "myname");
 
 
         // Details
 
         mvc.perform(get(headerValue)
-                .header("Authorization", UserA.getUserAuthenticationString()))
+                .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", Matchers.is(contactid)))
                 .andExpect(jsonPath("$.firstName", Matchers.is("myname")))
@@ -135,14 +135,14 @@ public class ContactScenarios {
 
         // Is contact in group?
         mvc.perform(get("/groups/" + groupA.getName() + "/contacts")
-                .header("Authorization", UserA.getUserAuthenticationString()))
+                .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[?(@.id == '" + contactid + "')]", hasSize(1)));
 
         // Modify the contact
         mvc.perform(put("/groups/" + groupA.getName() + "/contacts/" + contactid)
-                .header("Authorization", UserA.getUserAuthenticationString())
+                .header("Authorization", UserA.getAuthenticationString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":\"" + contactid + "\",\"firstName\":\"mynewname\"}"))
                 .andExpect(status().isOk());
@@ -150,7 +150,7 @@ public class ContactScenarios {
         // Details
 
         mvc.perform(get(headerValue)
-                .header("Authorization", UserA.getUserAuthenticationString()))
+                .header("Authorization", UserA.getAuthenticationString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.firstName", Matchers.is("mynewname")))
                 .andReturn();
@@ -161,32 +161,32 @@ public class ContactScenarios {
     public void search() throws Exception {
 
 
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "notmyid", "notmyname");
+        addContact(UserA.getAuthenticationString(), groupA.getName(), "notmyid", "notmyname");
 
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "myid", "myname");
+        addContact(UserA.getAuthenticationString(), groupA.getName(), "myid", "myname");
 
-        addContact(UserA.getUserAuthenticationString(), groupA.getName(), "abcabc", "sanyi");
+        addContact(UserA.getAuthenticationString(), groupA.getName(), "abcabc", "sanyi");
 
 
         // Is contact in group?
         // No one has any idea about the interface so this is just a plan:
         // can you find two "myname"?
         mvc.perform(post("/groups/search")
-                .header("Authorization", UserA.getUserAuthenticationString())
+                .header("Authorization", UserA.getAuthenticationString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"firstName\":\"myname\"}"))
                 .andExpect(status().isOk());
 
         // can you find "notmyname"?
         mvc.perform(post("/groups/search")
-                .header("Authorization", UserA.getUserAuthenticationString())
+                .header("Authorization", UserA.getAuthenticationString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"firstName\":\"notmyname\"}"))
                 .andExpect(status().isOk());
 
         // can you find "bc" by ID?
         mvc.perform(post("/groups/search")
-                .header("Authorization", UserA.getUserAuthenticationString())
+                .header("Authorization", UserA.getAuthenticationString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":\"bc\"}"))
                 .andExpect(status().isOk());
@@ -201,7 +201,7 @@ public class ContactScenarios {
         // Given
         // N users with two groups each. Every first group will have one contact, and every second group will have i * 2 contact
         for (int i = 0; i < 10; i++) {
-            String user = "erzsi";//new UserBuilder(context).getUser().getUserAuthenticationString();
+            String user = "erzsi";//new UserBuilder(context).getUser().getAuthenticationString();
             users.add(user);
 
             addContact(user, groupid1, "myid", "myname");
