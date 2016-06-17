@@ -38,7 +38,7 @@ public class UserBuilder {
     private String createUserJson(String username, String password, String role) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
-        node.put("username", username);
+        node.put("userName", username);
         node.put("password", password);
         node.put("role", role);
         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node).toString();
