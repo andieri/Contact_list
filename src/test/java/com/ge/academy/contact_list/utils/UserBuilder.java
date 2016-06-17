@@ -63,7 +63,8 @@ public class UserBuilder {
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
-                .andDo(print()).andReturn().getResponse();
+//                .andDo(print())
+                .andReturn().getResponse();
     }
 
     public UserBuilder createAdminUser() throws Exception {
@@ -88,7 +89,7 @@ public class UserBuilder {
 
     public UserBuilder createUser() throws Exception {
         String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();
-        System.out.println(adminToken);
+        System.out.println("Admin létrehoz egy felhasználót \n Admin bearer string: "+adminToken);
 
         if (this.user.getUsername() == null & this.user.getPassword() == null) {
             do {
@@ -97,8 +98,8 @@ public class UserBuilder {
                 UserBuilder.counter++;
             } while (this.createUser(adminToken).getStatus() != 201);
         } else {
-            System.out.println(this.user.getUsername());
-            System.out.println(this.user.getPassword());
+//            System.out.println(this.user.getUsername());
+//            System.out.println(this.user.getPassword());
             this.createUser(adminToken);
         }
         return this;
