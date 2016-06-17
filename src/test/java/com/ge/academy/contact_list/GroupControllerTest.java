@@ -1,4 +1,4 @@
-package com.ge.academy.contact_list.mock;
+package com.ge.academy.contact_list;
 
 import com.ge.academy.contact_list.ContactListApplication;
 import com.ge.academy.contact_list.entity.User;
@@ -15,9 +15,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -49,9 +49,8 @@ public class GroupControllerTest {
     // positive cases
     @Test
     public void getAllGroupsShouldReturnEmptyJsonWhenNoGroupsArePresent() throws Exception {
-        // Given
-        UserBuilder userBuilder = new UserBuilder(context).getUser();
-        String authHeader = userBuilder.getUserAuthenticationString();
+        //Given
+        String authHeader = new UserBuilder(context).createUser().build().getAuthenticationString();
 
         // When
         mvc.perform(get("/groups").header("Authorization", authHeader))
@@ -66,8 +65,8 @@ public class GroupControllerTest {
     @Test
     public void createGroupAndCheckIfCreated() throws Exception {
         // Given
-        UserBuilder userBuilder = new UserBuilder(context).getUser();
-        String authHeader = userBuilder.getUserAuthenticationString();
+        UserBuilder userBuilder = new UserBuilder(context).createUser().build();
+        String authHeader = userBuilder.getAuthenticationString();
         String userName = userBuilder.getUsername();
 
 
@@ -152,8 +151,8 @@ public class GroupControllerTest {
     @Test
     public void createNewContactShouldAddContactToGroup() throws Exception {
         // Given
-        UserBuilder userBuilder = new UserBuilder(context).getUser();
-        String authHeader = userBuilder.getUserAuthenticationString();
+        UserBuilder userBuilder = new UserBuilder(context).createUser().build();
+        String authHeader = userBuilder.getAuthenticationString();
         String userName = userBuilder.getUsername();
 
 
@@ -193,12 +192,12 @@ public class GroupControllerTest {
     public void differentUsersShouldNotAccessEachOthersGroups() throws Exception {
 
         // Given
-        UserBuilder userBuilder1 = new UserBuilder(context).getUser();
-        String authHeader1 = userBuilder1.getUserAuthenticationString();
+        UserBuilder userBuilder1 = new UserBuilder(context).createUser().build();
+        String authHeader1 = userBuilder1.getAuthenticationString();
         String userName1 = userBuilder1.getUsername();
 
-        UserBuilder userBuilder2 = new UserBuilder(context).getUser();
-        String authHeader2 = userBuilder2.getUserAuthenticationString();
+        UserBuilder userBuilder2 = new UserBuilder(context).createUser().build();
+        String authHeader2 = userBuilder2.getAuthenticationString();
         String userName2 =  userBuilder2.getUsername();
 
         // When
@@ -253,7 +252,7 @@ public class GroupControllerTest {
     @Test
     public void getAllGroupsShouldReturnHttpStatus401WhenAuthenticationIsNotFound() throws Exception {
         // Given
-        String authHeader = new UserBuilder(context).getUser().getUserAuthenticationString();
+        String authHeader = new UserBuilder(context).createUser().build().getAuthenticationString();
 
         // When
         mvc.perform(get("/groups").header("Authorization", authHeader+"I AM ERROR"))
