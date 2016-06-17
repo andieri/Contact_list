@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -106,7 +107,7 @@ public class AdminUserFunctionTest {
         return mockMvc.perform(post("/users/create")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json)
-                .header("Authorization", "Bearer " + adminToken));
+                .header("Authorization", adminToken));
     }
 
     /**
@@ -115,12 +116,8 @@ public class AdminUserFunctionTest {
     @Test
     public void whenLoggedInAdminCreateUserShouldReturnHTTPStatusOK() throws Exception {
         //Given
-        String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();/*
-        String adminJson = this.loginUser("Admin", "Alma1234")
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();*/
+        String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();
         //when
-//        String token = JsonPath.read(adminJson, "$.tokenId");
         ResultActions createdUser = this.createUser("user1", "pw1", adminToken);
         //then
         createdUser.andExpect(status().isCreated())
@@ -130,13 +127,8 @@ public class AdminUserFunctionTest {
     @Test
     public void adminUserCreatedUserWhenLoginShouldReturnHTTPStatusOK() throws Exception {
         //Given
-        String adminJson = this.loginUser("Admin", "Alma1234")
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-
-        String token = JsonPath.read(adminJson, "$.tokenId");
-
-        this.createUser("user1", "pw1", token)
+        String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();
+        this.createUser("user1", "pw1", adminToken)
                 .andReturn().getResponse().getContentAsString();
         //when
         ResultActions loggedInUser = this.loginUser("user1", "pw1");
@@ -148,13 +140,9 @@ public class AdminUserFunctionTest {
     @Test
     public void adminUserCreatedUserWhenLoginShouldReturnTheAuthorizationTokenOfTheUser() throws Exception {
         //Given
-        String adminJson = this.loginUser("Admin", "Alma1234")
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+        String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();
 
-        String token = JsonPath.read(adminJson, "$.tokenId");
-
-        this.createUser("user1", "pw1", token)
+        this.createUser("user1", "pw1", adminToken)
                 .andReturn().getResponse().getContentAsString();
         //when
         ResultActions loggedInUser = this.loginUser("user1", "pw1");
@@ -164,22 +152,20 @@ public class AdminUserFunctionTest {
                 .andExpect(jsonPath("$.tokenId").exists())
                 .andExpect(jsonPath("$.tokenId").isString()).andReturn().getResponse().getContentAsString();
         String userToken = JsonPath.read(userTokenJson, "$.tokenId");
-        assertEquals(token.length(), userToken.length());
-        assertNotEquals(token, userToken);
+        assertEquals(adminToken.length(), userToken.length());
+        assertNotEquals(adminToken, userToken);
     }
 
     @Test
     public void twoDifferentLoggedInUserAuthorizationTokenIsNotSame() throws Exception {
         //Given
-        String adminJson = this.loginUser("Admin", "Alma1234")
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        String token = JsonPath.read(adminJson, "$.tokenId");
+        String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();
 
-        this.createUser("user1", "pw1", token).andExpect(status().isCreated());
+        this.createUser("user1", "pw1", adminToken).andExpect(status().isCreated());
 
-        this.createUser("user2", "pw2", token).andExpect(status().isCreated());
+        this.createUser("user2", "pw2", adminToken).andExpect(status().isCreated());
 
+        //when
         String user1TokenJson = this.loginUser("user1", "pw1")
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
@@ -195,17 +181,15 @@ public class AdminUserFunctionTest {
                 .andReturn().getResponse().getContentAsString();
         String user1Token = JsonPath.read(user1TokenJson, "$.tokenId");
         String user2Token = JsonPath.read(user2TokenJson, "$.tokenId");
-        //when
-        assertNotEquals(user1Token, user2Token);
-        //then
+        // then
 
         assertNotEquals(user1Token, user2Token);
     }
-/*
+
     @Test
-    public void adminCanListAllUsers throws Exception {
+    public void adminCanListAllUsers() throws Exception {
         //Given
-        String adminToken = new UserBuilder(ctx).getAdminUser().getAdminUserAuthenticationString();
+        String adminToken = new UserBuilder(ctx).createAdminUser().build().getAuthenticationString();
         System.out.println("AdminToken " + adminToken);
         String user1 = this.createUser("user1", "password", adminToken).andReturn().getResponse().getContentAsString();
         System.out.println("user1 created");
@@ -216,24 +200,32 @@ public class AdminUserFunctionTest {
         String user4 = this.createUser("user4", "password4", adminToken).andReturn().getResponse().getContentAsString();
         System.out.println("user4 created");
 
-        String allUserJson = mockMvc.perform(get("/users").header("Authorization", adminToken))
-                .andExpect(status().isOk()).andDo(print())
+        //when
+
+
+        ResultActions getAllUsersRequest = mockMvc.perform(get("/users").header("Authorization", adminToken));
+
+        //then
+
+        MvcResult getAllUserResult = getAllUsersRequest.andExpect(status().isOk())
+                .andDo(print())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(5)))
                 .andExpect(jsonPath("$[0].userName").exists())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn();
+        String allUserJson = getAllUserResult.getResponse().getContentAsString();
+//        String userIdForSelectedUser = JsonPath.read(allUserJson, "$[0].userName");
+//        String json = "{ \"name\" : \"" + userIdForSelectedUser + "\", \"oldPassword\" : \"password\", \"newPassword\" : \"pass\" }";
 
-        String userIdForSelectedUser = JsonPath.read(allUserJson, "$[0].userName");
-        String json = "{ \"name\" : \"" + userIdForSelectedUser + "\", \"oldPassword\" : \"password\", \"newPassword\" : \"pass\" }";
-
-        mockMvc.perform(put("/" + userIdForSelectedUser + "/changePassword")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
-                .andExpect(status().isOk());
+        //then
+//        mockMvc.perform(put("/" + userIdForSelectedUser + "/changePassword")
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content(json))
+//                .andExpect(status().isOk());
 
     }
 
-*/
+
 //    @Test
 //    public void LogedInUserWhenChangePasswordShouldReturnHTTPStatusOK() throws Exception {
 //        //given
