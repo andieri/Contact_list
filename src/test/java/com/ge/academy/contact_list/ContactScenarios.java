@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ContactScenarios {
     UserBuilder UserA;
     ContactGroup groupA;
-
+    UserBuilder admin;
     @Autowired
     private WebApplicationContext context;
     private MockMvc mvc;
@@ -49,6 +49,7 @@ public class ContactScenarios {
                 .build();
 
         UserA = new UserBuilder(context).createUser().build();
+        admin = new UserBuilder(context).createAdminUser().build();
 
         groupA = ContactGroup.creator()
                 .authHeader(UserA.getAuthenticationString())
@@ -169,35 +170,51 @@ public class ContactScenarios {
     public void search() throws Exception {
 
 
-        addContact(UserA.getAuthenticationString(), groupA.getName(), "abcd" , "efghabc");
+        addContact(UserA.getAuthenticationString(), groupA.getName(), "abcd", "efghabc");
 
         addContact(UserA.getAuthenticationString(), groupA.getName(), "ijkl", "mnopabc");
 
         addContact(UserA.getAuthenticationString(), groupA.getName(), "1234", "abc");
 
+//        mvc.perform(post("/search")
+//                .header("Authorization", UserA.getAuthenticationString() )
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content("{}"))
+//                .andDo(print())
+//                .andExpect(status().isOk());
+//
 
-
-
-        // can you find all three "abc"-s?
-        mvc.perform(post("/search")
-                .header("Authorization", UserA.getAuthenticationString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"lastName\":\"abc\"}"))
-                .andExpect(status().isOk());
-
-        // can you find "notmyname"?
-        mvc.perform(post("/search")
-                .header("Authorization", UserA.getAuthenticationString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"firstName\":\"notmyname\"}"))
-                .andExpect(status().isOk());
-
-        // can you find "bc" by ID?
-        mvc.perform(post("/search")
-                .header("Authorization", UserA.getAuthenticationString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"id\":\"bc\"}"))
-                .andExpect(status().isOk());
+//        mvc.perform(post("/search")
+//                .header("Authorization", UserA.getAuthenticationString())
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content("{}"))
+//                .andExpect(status().isOk());
+//
+//        // can you find all three "abc"-s?
+//        mvc.perform(post("/search")
+//                .header("Authorization", UserA.getAuthenticationString())
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content("{\n" +
+//                        "    \"lastName\": \"asd\"\n" +
+//                        "}"))
+//                .andDo(print())
+//                .andExpect(status().isOk());
+//
+//        // can you find "notmyname"?
+//        mvc.perform(post("/search")
+//                .header("Authorization", UserA.getAuthenticationString())
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content("{\n" +
+//                        "    \"lastName\": \"asd\"\n" +
+//                        "}"))
+//                .andExpect(status().isOk());
+//
+//        // can you find "bc" by ID?
+//        mvc.perform(post("/search")
+//                .header("Authorization", UserA.getAuthenticationString())
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content("{\"id\":\"bc\"}"))
+//                .andExpect(status().isOk());
 
     }
 
