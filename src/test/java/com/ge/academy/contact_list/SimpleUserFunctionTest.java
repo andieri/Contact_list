@@ -45,18 +45,18 @@ public class SimpleUserFunctionTest {
         this.userToken1 = new UserBuilder(ctx).setUsername("cheatUser").setPassword("cheater").createUser().build().getAuthenticationString();
         this.creator = new UserJsonCreator();
     }
+
     private ResultActions loginUser(String username, String password) throws Exception {
         String json = creator.getJsonForLogin(username, password);
         return mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json)
-                .param("password", password));
+                .content(json));
     }
 
     @Test
     public void logedInUserWhenChangePasswordShouldReturnHTTPStatusOK() throws Exception {
         //given
-        String json = creator.getJSonForChangePassword("password", "newpassword");
+        String json = creator.getJSonForChangePassword("cheater", "newpassword");
         //when
         ResultActions passwordUpdateRequest = mockMvc.perform(put("/users/changepassword")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -73,23 +73,22 @@ public class SimpleUserFunctionTest {
     @Test
     public void LogedInUserWheChangePasswordShouldReloginWithNewPassword() throws Exception {
         //given
-        //when
-        String json = creator.getJSonForChangePassword("pass", "pass2");
+        String json = creator.getJSonForChangePassword("cheater", "newpassword");
 
+        //when
         ResultActions passwordUpdateRequest =
                 mockMvc.perform(put("/users/changepassword")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json)
-                        .header("Authorization", userToken1))
-                        .andExpect(status().isOk());
+                        .header("Authorization", userToken1));
 
         //logout request
 
-        ResultActions relogin = this.loginUser("username", "pass2");
+        ResultActions relogin = this.loginUser("cheatUser", "newpassword");
 
         //then
         relogin.andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                 .andExpect(jsonPath("$.tokenId").exists())
                 .andExpect(jsonPath("$.tokenId").isString());
     }
@@ -97,9 +96,9 @@ public class SimpleUserFunctionTest {
     @Test
     public void LogedInUserWhenChangePasswordShouldNotReloginWithOldPassword() throws Exception {
         //given
-        String json = creator.getJSonForChangePassword("passwd2", "password2");
+        String json = creator.getJSonForChangePassword("cheater", "newpassword");
         ResultActions passwordUpdateRequest =
-                mockMvc.perform(put("/users/changePassword")
+                mockMvc.perform(put("/users/changepassword")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json)
                         .header("Authorization", userToken1))
@@ -107,7 +106,7 @@ public class SimpleUserFunctionTest {
 
         //when
 
-        ResultActions relogin = this.loginUser("username", "passwd2");
+        ResultActions relogin = this.loginUser("cheatUser", "cheater");
 
         //then
 

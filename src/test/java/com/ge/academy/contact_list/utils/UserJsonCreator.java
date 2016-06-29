@@ -42,6 +42,7 @@ public class UserJsonCreator {
     public String getJSonForChangePassword(String oldPassword, String newPassword) throws JsonProcessingException {
         this.node.put("oldPassword", oldPassword);
         this.node.put("newPassword", newPassword);
+        this.node.put("version", 1);
         return this.mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
     }
 }
