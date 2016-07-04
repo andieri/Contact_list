@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertNotEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 /**
  * Created by 212566304 on 6/13/2016.
@@ -171,6 +172,7 @@ public class AdminUserFunctionTest {
         //then
 
         MvcResult getAllUserResult = getAllUsersRequest.andExpect(status().isOk())
+				.andDo(print())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(5)))
                 .andExpect(jsonPath("$[0].userName").exists()).andExpect(jsonPath("$[0].userName").isString())
@@ -187,7 +189,7 @@ public class AdminUserFunctionTest {
                 .andExpect(jsonPath("$[2].links").exists()).andExpect(jsonPath("$[3].links").exists())
                 .andExpect(jsonPath("$[4].links").exists())
                 .andReturn();
-        System.out.println(getAllUserResult.getResponse().getContentAsString());
+       // System.out.println(getAllUserResult.getResponse().getContentAsString());
     }
 
 
